@@ -1,12 +1,9 @@
-struct AbilityScore{
-    index:String,
-    name:String,
-    url:String,
-}
+use crate::DnD::Schemas::APIReference;
+
 pub struct Skill{
-    index:String,
-    name:String,
-    url:String,
-    desc:Vec<String>,
-    ability_score:AbilityScore,
+    pub index:String,
+    pub name:String,
+    pub url:String,
+    pub desc:Vec<String>,
+    pub ability_score:APIReference,
 }

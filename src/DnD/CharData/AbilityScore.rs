@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::string::ToString;
 use serde::Deserialize;
 use reqwest::{Client};
-use serenity::all::standard::macros;
 use serenity::async_trait;
 use crate::DnD::CharData::Convert;
 use crate::DnD::Schemas::APIReference;
@@ -36,13 +34,13 @@ impl AbilityScore{
 }
 
 // Custom struct to hold alias-link pairs
-struct AbilityScoreAlias {
+pub struct AbilityScoreAlias {
     pub alias: &'static str,
     pub link: &'static str,
 }
 
 // Vec to store the alias-link pairs
-const ABILITY_SCORE_ALIASES: &[AbilityScoreAlias] = &[
+pub const ABILITY_SCORE_ALIASES: &[AbilityScoreAlias] = &[
     AbilityScoreAlias {
         alias: "charisma",
         link: "cha",
@@ -50,6 +48,22 @@ const ABILITY_SCORE_ALIASES: &[AbilityScoreAlias] = &[
     AbilityScoreAlias {
         alias: "constitution",
         link: "con",
+    },
+    AbilityScoreAlias {
+        alias: "dexterity",
+        link: "dex",
+    },
+    AbilityScoreAlias {
+        alias: "intelligence",
+        link: "int",
+    },
+    AbilityScoreAlias {
+        alias: "strength",
+        link: "str",
+    },
+    AbilityScoreAlias {
+        alias: "wisdom",
+        link: "wis",
     },
 ];
 
@@ -103,22 +117,6 @@ impl Convert for AbilityScore{
             None => print!("?"),
         }
     }
-}
-
-#[macros::command]
-#[aliases(lookup)]
-pub async fn abi(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let alias = args.clone();
-
-    for i in ABILITY_SCORE_ALIASES {
-        if alias.current().unwrap_or_default() == i.alias || alias.current().unwrap_or_default() == i.link {
-            send_abi_response(ctx, msg, i.link.clone().to_string()).await.expect("TODO: panic message");
-            return Ok(());
-        }
-    }
-
-    msg.reply(ctx, format!("Unknown alias: {:?}", alias.current().unwrap_or_default())).await?;
-    Ok(())
 }
 
 pub async fn send_abi_response(ctx: &Context, msg: &Message, abi_type:String) -> CommandResult{

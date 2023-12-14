@@ -5,9 +5,9 @@ enum LANGUAGE_TYPE{
     Exotic,
 }
 pub struct Language{
-    reference:APIReference,
-    desc:String,
-    language_type:LANGUAGE_TYPE,
-    script:String,
-    typical_speaker:Vec<String>,
+    pub reference:APIReference,
+    pub desc:String,
+    pub language_type:LANGUAGE_TYPE,
+    pub script:String,
+    pub typical_speaker:Vec<String>,
 }
