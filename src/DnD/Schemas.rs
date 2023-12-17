@@ -87,15 +87,15 @@ impl Action{
 
 //Contains information about an ideal (part of character definition)
 #[derive(Deserialize, Debug)]
-struct Ideal{
-    desc:String,
-    alignments:Vec<APIReference>
+pub struct Ideal{
+    pub desc:String,
+    pub alignments:Vec<APIReference>
 }
 impl Ideal{
     pub fn new() -> Self{
         Ideal{
             desc:"".to_string(),
-            alignments:vec![APIReference::new()],
+            alignments:vec![],
         }
     }
 }
@@ -286,7 +286,7 @@ impl Choice {
                         //get the option, turn it into an object then switch object_type
                         // to get appropriate of Option
                         let mut _option:Option = Option::new();
-                        let a_object = a.as_object().unwrap();
+                        let a_object = a.as_object().unwrap(); //an object in the array
                         //parse in the object type
                         _option.option_type = a_object["option_type"].as_str().unwrap().to_string();
                         //get object
@@ -298,8 +298,11 @@ impl Choice {
                             //process if the option type is Ideal
                             "ideal" => {
                                 _option.ideal.desc = a_object["desc"].as_str().unwrap().to_string();
+                                //alignment is a vector of objects (APIReference)
                                 let mut alignments = a_object["alignments"].as_array().unwrap();
                                 for i in alignments{
+                                    //get teh object, parse it in to a APIReference and push it into the alignment vector
+                                    //of an ideal object
                                     let mut _reference = i.as_object().unwrap();
                                     let mut  new_ref = APIReference::new();
                                     new_ref.name =_reference["name"].as_str().unwrap().to_string();
