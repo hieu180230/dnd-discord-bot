@@ -7,8 +7,10 @@ use crate::DnD::CharData::Language::*;
 use crate::DnD::CharData::proficiencies::*;
 use crate::DnD::CharData::Skills::*;
 
+use crate::DnD::Class::ClassInfo::*;
+
 use serenity::prelude::*;
-use serenity::all::{CreateMessage, Message, Timestamp};
+use serenity::all::{Message};
 use crate::DnD::RESOURCES_LIST;
 
 
@@ -24,7 +26,8 @@ pub async fn str_from_vec(a:Vec<String>) -> String{
 #[macros::group]
 #[prefix(DnD)]
 #[only_in(guilds)]
-#[commands(look_up_abi, look_up_ali, look_up_bg, look_up_language, look_up_proficiency, look_up_skill)]
+#[commands(look_up_abi, look_up_ali, look_up_bg, look_up_language, look_up_proficiency, look_up_skill,
+look_up_class)]
 struct DnD;
 
 #[macros::command]
@@ -128,6 +131,24 @@ async fn look_up_skill(ctx: &Context, msg: &Message, args: Args) -> CommandResul
     for i in &RESOURCES_LIST["skills"].results{
         if alias.current().unwrap_or_default().to_lowercase() == i.index.to_string() {
             send_skill_response(ctx, msg, i.index.to_string()).await.expect("TODO: panic message");
+            return Ok(());
+        }
+    }
+    msg.reply(ctx, format!("Unknown alias: {:?}", alias.current().unwrap_or_default())).await?;
+    Ok(())
+}
+
+#[macros::command]
+#[aliases(class)]
+async fn look_up_class(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let alias = args.clone();
+    if alias.current().unwrap_or_default().to_lowercase() == "all".to_string(){
+        send_class_response(ctx, msg, "all".to_string()).await.expect("TODO: panic message");
+        return Ok(());
+    }
+    for i in &RESOURCES_LIST["classes"].results{
+        if alias.current().unwrap_or_default().to_lowercase() == i.index.to_string() {
+            send_class_response(ctx, msg, i.index.to_string()).await.expect("TODO: panic message");
             return Ok(());
         }
     }

@@ -9,6 +9,7 @@ use crate::DnD::Schemas::APIReferenceList;
 
 pub mod Schemas;
 pub mod CharData;
+pub mod Class;
 pub mod DnDCommands;
 pub mod SchemasUtils;
 

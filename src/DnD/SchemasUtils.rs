@@ -1,25 +1,27 @@
+use async_recursion::async_recursion;
 use crate::DnD::Schemas::*;
 use serde_json::Map;
 impl Choice {
+    #[async_recursion]
     pub async fn parse(&mut self, json:&serde_json::Value){
         //get description of the choice that players are about to make
         match json.get("desc"){
             Some(T) => {
-                self.desc = json["desc"].as_str().unwrap().to_string();
+                self.desc = T.as_str().unwrap().to_string();
             },
             None => print!("?"),
         }
         //get how many choices players can make
         match json.get("choose"){
             Some(T) => {
-                self.choose = json["choose"].as_i64().unwrap();
+                self.choose = T.as_i64().unwrap();
             },
             None => print!("?"),
         }
         //get the type of choices
         match json.get("type"){
             Some(T) => {
-                self.choice_type = json["type"].as_str().unwrap().to_string();
+                self.choice_type = T.as_str().unwrap().to_string();
             },
             None => print!("?"),
         }
@@ -27,7 +29,7 @@ impl Choice {
         let mut from: &Map<String,serde_json::Value> = &Map::new();
         match json.get("from"){
             Some(T) => {
-                from = json["from"].as_object().unwrap();
+                from = T.as_object().unwrap();
             }
             None => print!("?"),
         }
@@ -62,7 +64,30 @@ impl Choice {
                             "ideal" => {
                                 _option.ideal = Ideal::parse(a_object);
                             }
-
+                            //process if the option type is APIReference
+                            "reference" => {
+                                _option.reference = APIReference::parse(&a_object["item"]);
+                            }
+                            //process if the option type is score prerequisite
+                            "score_prerequisite" => {
+                                let mut score_pre = ScorePrerequisite::new();
+                                score_pre.ability_score = APIReference::parse(&a_object["ability_score"]);
+                                score_pre.minimum_score = a_object["minimum_score"].as_i64().unwrap();
+                                _option.score_prerequisite = score_pre;
+                            }
+                            //process if teh option type is countedRef
+                            "counted_reference" => {
+                                let mut counted_ref = CountRef::new();
+                                counted_ref.count = a_object["count"].as_i64().unwrap();
+                                counted_ref.of = APIReference::parse(&a_object["of"]);
+                                _option.counted_reference = counted_ref;
+                            }
+                            //process if the option type is choice
+                            "choice" => {
+                                let mut another_choice = Choice::new();
+                                another_choice.parse(&a_object["choice"]).await;
+                                _option.choice = another_choice;
+                            }
                             _ => print!("?"),
                         }
                         //push each of the options to option set
@@ -86,4 +111,10 @@ impl Choice {
         self.from = _option_set;
     }
 
+    pub async fn display(&self) -> String{
+        let mut res: String = "".to_string();
+
+
+        res
+    }
 }

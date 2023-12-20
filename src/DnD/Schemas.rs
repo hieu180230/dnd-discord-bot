@@ -133,9 +133,9 @@ impl Ideal{
 
 //Contains a reference to something else in the API along with a count.
 #[derive(Deserialize, Debug)]
-struct CountRef{
-    count:i64,
-    of:APIReference,
+pub struct CountRef{
+    pub count:i64,
+    pub of:APIReference,
 }
 impl CountRef{
     pub fn new() -> Self{
@@ -148,15 +148,25 @@ impl CountRef{
 
 //Contains a reference to an ability score and a minimum score.
 #[derive(Deserialize, Debug)]
-struct ScorePrerequisite{
-    ability_score:APIReference,
-    minimum_score:i64,
+pub struct ScorePrerequisite{
+    pub ability_score:APIReference,
+    pub minimum_score:i64,
 }
 impl ScorePrerequisite{
     pub fn new() -> Self{
         ScorePrerequisite{
             ability_score:APIReference::new(),
             minimum_score:-1,
+        }
+    }
+    pub fn parse(T: &Value) -> Self{
+        ScorePrerequisite{
+            ability_score: APIReference {
+                index: T["ability_score"].as_object().unwrap()["index"].as_str().unwrap().to_string(),
+                name: T["ability_score"].as_object().unwrap()["name"].as_str().unwrap().to_string(),
+                url: T["ability_score"].as_object().unwrap()["url"].as_str().unwrap().to_string(),
+            },
+            minimum_score: T["minimum_score"].as_i64().unwrap(),
         }
     }
 }

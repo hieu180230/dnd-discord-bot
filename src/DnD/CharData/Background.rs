@@ -14,9 +14,9 @@ use serenity::builder::CreateEmbed;
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
 
-struct Feature{
-    feature_type:String,
-    desc:Vec<String>,
+pub struct Feature{
+    pub feature_type:String,
+    pub desc:Vec<String>,
 }
 impl Feature{
     pub fn new() -> Self{
