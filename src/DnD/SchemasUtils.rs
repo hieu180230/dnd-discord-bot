@@ -60,20 +60,9 @@ impl Choice {
                             }
                             //process if the option type is Ideal
                             "ideal" => {
-                                _option.ideal.desc = a_object["desc"].as_str().unwrap().to_string();
-                                //alignment is a vector of objects (APIReference)
-                                let mut alignments = a_object["alignments"].as_array().unwrap();
-                                for i in alignments{
-                                    //get teh object, parse it in to a APIReference and push it into the alignment vector
-                                    //of an ideal object
-                                    let mut _reference = i.as_object().unwrap();
-                                    let mut  new_ref = APIReference::new();
-                                    new_ref.name =_reference["name"].as_str().unwrap().to_string();
-                                    new_ref.url =_reference["url"].as_str().unwrap().to_string();
-                                    new_ref.index =_reference["index"].as_str().unwrap().to_string();
-                                    _option.ideal.alignments.push(new_ref);
-                                }
+                                _option.ideal = Ideal::parse(a_object);
                             }
+
                             _ => print!("?"),
                         }
                         //push each of the options to option set

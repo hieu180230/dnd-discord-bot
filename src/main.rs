@@ -17,7 +17,12 @@ use serenity::{
 use discord_bot::Cat::CAT_GROUP;
 use discord_bot::Handler::{Handler, MANAGER_GROUP, ShardManagerContainer};
 use discord_bot::DnD::DnDCommands;
-use discord_bot::DnD::DnDCommands::DND_GROUP;
+use discord_bot::DnD::DnDCommands::{DND_GROUP};
+use discord_bot::DnD::Schemas::APIReferenceList;
+
+
+use std::collections::HashMap;
+
 
 
 #[tokio::main]

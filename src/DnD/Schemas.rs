@@ -1,9 +1,16 @@
 #[allow(non_camel_case_types)]
+use std::collections::HashMap;
+use reqwest::Client;
+
 use serde::Deserialize;
+use serde_json::{Value, Map, from_str};
+use serde_json::map::Values;
+
+use crate::DnD::API_SERVER;
 
 
 //this store the API reference of an item
-#[derive(Deserialize, Debug, Eq, Hash, PartialEq)]
+#[derive(Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct APIReference{
     pub index:String,
     pub name:String,
@@ -15,6 +22,13 @@ impl APIReference{
             index:"".to_string(),
             name:"".to_string(),
             url:"".to_string(),
+        }
+    }
+    pub fn parse(T: &Value) -> Self{
+        APIReference{
+            index:T["index"].as_str().unwrap().to_string(),
+            name:T["name"].as_str().unwrap().to_string(),
+            url:T["url"].as_str().unwrap().to_string()
         }
     }
 }
@@ -97,6 +111,23 @@ impl Ideal{
             desc:"".to_string(),
             alignments:vec![],
         }
+    }
+    pub fn parse(object: &Map<String, Value>) -> Self {
+        let mut ideal = Ideal::new();
+        ideal.desc = object["desc"].as_str().unwrap().to_string();
+        //alignment is a vector of objects (APIReference)
+        let mut alignments = object["alignments"].as_array().unwrap();
+        for i in alignments {
+            //get teh object, parse it in to a APIReference and push it into the alignment vector
+            //of an ideal object
+            let mut _reference = i.as_object().unwrap();
+            let mut new_ref = APIReference::new();
+            new_ref.name = _reference["name"].as_str().unwrap().to_string();
+            new_ref.url = _reference["url"].as_str().unwrap().to_string();
+            new_ref.index = _reference["index"].as_str().unwrap().to_string();
+            ideal.alignments.push(new_ref);
+        }
+        return ideal;
     }
 }
 
@@ -237,5 +268,50 @@ impl Choice{
     }
 }
 
+#[derive(Clone)]
+pub struct APIReferenceList{
+    pub count: i64,
+    pub results: Vec<APIReference>,
+}
 
+const ENDPOINTS: &[&str] = &["ability-scores", "alignments", "backgrounds", "classes",
+                                  "conditions", "damage-types", "equipment", "equipment-categories",
+                                  "feats", "features", "languages", "magic-items", "magic-schools",
+                                  "monsters", "proficiencies", "races", "rule-sections", "rules",
+                                  "skills", "spells", "subclasses", "subraces", "traits", "weapon-properties"];
+impl APIReferenceList{
+    pub fn new() -> Self{
+        APIReferenceList{
+            count: -1,
+            results: vec![],
+        }
+    }
+    pub async fn load() -> HashMap<String, Self>{
+        let mut resources: HashMap<String, APIReferenceList> = HashMap::new();
+        for endpoint in ENDPOINTS{
+            let client = Client::new();
+            let res = client.get(format!("{}/api/{}",API_SERVER, endpoint))
+                .send()
+                .await
+                .expect("fail to get to link")
+                .text()
+                .await
+                .expect("fail to convert to json");
+            let json:Value = from_str(&res).expect("what?");
+            let mut references = APIReferenceList::new();
+            references.count = json["count"].as_i64().unwrap();
+            let resource_array = json["results"].as_array().unwrap();
+            for resource in resource_array{
+                let mut reference = APIReference::new();
+                reference.name = resource["name"].as_str().unwrap().to_string();
+                reference.url = resource["url"].as_str().unwrap().to_string();
+                reference.index = resource["index"].as_str().unwrap().to_string();
+                references.results.push(reference);
+            }
+            resources.insert(endpoint.to_string(), references);
+        }
+        println!("ok loading data");
+        resources
+    }
+}
 
