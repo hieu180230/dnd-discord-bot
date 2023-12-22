@@ -113,7 +113,23 @@ impl Choice {
 
     pub async fn display(&self) -> String{
         let mut res: String = "".to_string();
+        match &*self.from.option_set_type {
+            "options_array" => {
+                match &*self.from.options[0].option_type{
+                    "string" => {
+                        for i in self.from.options {
+                            res += &*format!("+ *{}*\n", i.string);
+                        }
+                    }
+                    "ideal" => {
 
+                    }
+                    "" => {}
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
 
         res
     }
