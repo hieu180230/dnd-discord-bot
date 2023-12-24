@@ -1,6 +1,8 @@
 use async_recursion::async_recursion;
 use crate::DnD::Schemas::*;
 use serde_json::Map;
+use crate::DnD::API_SERVER;
+
 impl Choice {
     #[async_recursion]
     pub async fn parse(&mut self, json:&serde_json::Value){
@@ -113,16 +115,37 @@ impl Choice {
 
     pub async fn display(&self) -> String{
         let mut res: String = "".to_string();
+        if self.desc != "".to_string(){
+            if self.choose != -1 {
+                res += &*format!("#{} ({} choice(s))\n", self.desc, self.choose);
+            }
+            else{
+                res += &*format!("#{}\n", self.desc);
+            }
+        }
+
         match &*self.from.option_set_type {
             "options_array" => {
                 match &*self.from.options[0].option_type{
                     "string" => {
-                        for i in self.from.options {
-                            res += &*format!("+ *{}*\n", i.string);
+                        for i in &self.from.options {
+                            res += &*format!("- *{}*\n", i.string);
                         }
                     }
                     "ideal" => {
-
+                        for ideal in &self.from.options {
+                            let mut string_ideal: String = format!("- *{}* (", ideal.ideal.desc);
+                            for alignment in &ideal.ideal.alignments {
+                                string_ideal += &*format!("{} / ", alignment.name);
+                            }
+                            string_ideal = string_ideal[0..string_ideal.len() - 3].to_string();
+                            res += &*format!("{})\n", string_ideal);
+                        }
+                    }
+                    "reference" => {
+                        for reference in &self.from.options {
+                            res += &*format!("- *[{}]({}{})*\n", reference.reference.name, API_SERVER, reference.reference.url);
+                        }
                     }
                     "" => {}
                     _ => {}
@@ -130,7 +153,6 @@ impl Choice {
             }
             _ => {}
         }
-
         res
     }
 }

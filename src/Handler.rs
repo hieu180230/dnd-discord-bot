@@ -2,11 +2,16 @@ use std::error::Error;
 use std::marker::Send;
 use std::sync::Arc;
 use crate::{I_HELP_COMMAND, HELP_MESSAGE};
-use serenity::all::{Message, MessageBuilder, Ready};
+use serenity::all::{CreateSelectMenu, Message, MessageBuilder, Ready};
 use serenity::async_trait;
 use serenity::prelude::*;
 use serenity::all::standard::macros;
-use serenity::builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage};
+use serenity::builder::{CreateAttachment,
+                        CreateEmbed,
+                        CreateEmbedFooter,
+                        CreateMessage,
+                        CreateSelectMenuKind,
+                        CreateSelectMenuOption};
 use serenity::framework::standard::*;
 use serenity::gateway::ShardManager;
 
@@ -30,14 +35,20 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult{
             return Err(Box::new(why) as Box<dyn Error + Send + Sync>);
         },
     };
-    let resp = MessageBuilder::new()
+    let content = MessageBuilder::new()
         .push("User ")
         .push_bold_safe(&msg.author.name) //this make the text italic or bold, ...
         .push(" ping the channel ")
         .mention(&channel)
         .build();
-
-    if let Err(why) = msg.channel_id.say(&ctx.http, &resp).await{
+    let resp = CreateMessage::new()
+        .content(content)
+        .select_menu(CreateSelectMenu::new("custom_id",
+                                           CreateSelectMenuKind::String {
+                                               options:vec![CreateSelectMenuOption::new("label1", "value1"),
+                                               CreateSelectMenuOption::new("label2", "value2"),]})
+            .placeholder("holder"));
+    if let Err(why) = msg.channel_id.send_message(&ctx.http, resp).await{
         println!("Error sending ping msg: {:?}",why);
     }
     return Ok(());

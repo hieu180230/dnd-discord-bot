@@ -6,7 +6,7 @@ use serenity::async_trait;
 use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serenity::builder::CreateEmbed;
+use serenity::builder::{CreateButton, CreateEmbed};
 
 use serde_json::{from_str, Value};
 
@@ -180,14 +180,16 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
         a.from_value(json.clone()).await;
 
         let mut title: String = format!("{}",a.reference.name);
-        if a.hit_die != -1 { title += &*format!(" ({} hit(s))", a.hit_die); }
-        if a.class_levels != "" { title += &*format!(" (Level resource: {}{})", API_SERVER, a.class_levels); }
-
+        if a.hit_die != -1 { title += &*format!(" ({} hit(s) to death)", a.hit_die); }
+        //if a.class_levels != "" { title += &*format!(" (Level resource: {}{})", API_SERVER, a.class_levels); }
+        let mut proficiency_choice:String = "".to_string();
+        for pro in a.proficiency_choices{
+            let pro_display = pro.display().await;
+            proficiency_choice += &*format!("{}\n",pro_display)
+        }
         let mut embed = CreateEmbed::new()
             .title(title)
-            .field(format!("Ability Score ({})", a.ability_score.name),
-                   format!("{}{}", API_SERVER, a.ability_score.url), false);
-
+            .field("Proficiency choices", proficiency_choice, false);
         if a.reference.url != "" {
             embed = embed.clone().url(format!("{}{}", API_SERVER, a.reference.url).to_string());
         }
@@ -204,8 +206,8 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
     else
     {
         let mut embed = CreateEmbed::new()
-            .title("**All available Skills**");
-        for i in &RESOURCES_LIST["skills"].results
+            .title("**All available Classes**");
+        for i in &RESOURCES_LIST["classes"].results
         {
             embed = embed.clone().field(format!("{}", i.name), format!("{}", i.index), true);
         }

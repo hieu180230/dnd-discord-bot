@@ -220,7 +220,6 @@ pub struct Option{
 }
 impl Option{
     pub fn new() -> Self{
-        print!("option");
         Option{
             option_type:"".to_string(),
             reference:APIReference::new(),
@@ -249,7 +248,6 @@ pub struct OptionSet{
 }
 impl OptionSet{
     pub fn new() -> Self{
-        print!("option set");
         OptionSet{
             option_set_type:"".to_string(),
             options:vec![],
@@ -268,7 +266,6 @@ pub struct Choice{
 }
 impl Choice{
     pub fn new() -> Self{
-        print!("choice");
         Choice{
             desc:"".to_string(),
             choose:-1,

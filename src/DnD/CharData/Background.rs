@@ -182,11 +182,12 @@ pub async fn send_background_response(ctx: &Context, msg: &Message, ali_type:Str
         let mut feature: String = "".to_string();
         let mut starting_profi: String = "".to_string();
         let mut starting_equipments: String = "".to_string();
-        let mut personality: String = "".to_string();
+        let personality: String = a.personality.display().await;
         let mut starting_equipment_option: String = "".to_string();
-        let mut ideals: String = "".to_string();
-        let mut flaws: String = "".to_string();
-        let mut bonds: String = "".to_string();
+        let ideals: String = a.ideals.display().await;
+        let flaws: String = a.flaws.display().await;
+        let bonds: String = a.bonds.display().await;
+
         for i in a.starting_proficiencies
         {
             starting_profi += &*format!("*{}*\n", i.name);
@@ -195,35 +196,11 @@ pub async fn send_background_response(ctx: &Context, msg: &Message, ali_type:Str
         {
             starting_equipments += &*format!("*{}*({})\n", i.0.name, i.1)
         }
-        match &*a.personality.from.option_set_type {
-            "options_array" => {
-                for i in a.personality.from.options {
-                    if i.option_type == "string" {
-                        personality += &*format!("+ *{}*\n", i.string);
-                    }
-                }
-            }
-            _ => {}
-        }
         starting_equipment_option += &*format!("*{}* ({}{})", a.starting_equipment_options.from.equipment_category.name,
                                                API_SERVER,
                                                a.starting_equipment_options.from.equipment_category.url);
         for i in a.feature.desc {
             feature += &*format!("*{}*\n", i);
-        }
-        for ideal in a.ideals.from.options {
-            let mut string_ideal: String = format!("+ *{}* (", ideal.ideal.desc);
-            for alignment in ideal.ideal.alignments {
-                string_ideal += &*format!("{} / ", alignment.name);
-            }
-            string_ideal = string_ideal[0..string_ideal.len() - 3].to_string();
-            ideals += &*format!("{})\n", string_ideal);
-        }
-        for flaw in a.flaws.from.options {
-            flaws += &*format!("+ *{}*\n", flaw.string);
-        }
-        for bond in a.bonds.from.options {
-            bonds += &*format!("+ *{}*\n", bond.string);
         }
 
         let mut embed = CreateEmbed::new()
