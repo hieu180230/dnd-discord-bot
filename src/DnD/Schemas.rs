@@ -31,6 +31,14 @@ impl APIReference{
             url:T["url"].as_str().unwrap().to_string()
         }
     }
+
+    pub fn display(T: Vec<APIReference>) -> String{
+        let mut res: String = "".to_string();
+        for t in &T {
+            res += &*format!("- *{}*\n", t.name);
+        }
+        return res;
+    }
 }
 
 //difficulty check
@@ -317,7 +325,6 @@ impl APIReferenceList{
             }
             resources.insert(endpoint.to_string(), references);
         }
-        println!("ok loading data");
         resources
     }
 }

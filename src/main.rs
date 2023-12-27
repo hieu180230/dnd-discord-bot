@@ -16,7 +16,7 @@ use serenity::{
 };
 use discord_bot::Cat::CAT_GROUP;
 use discord_bot::Handler::{Handler, MANAGER_GROUP, ShardManagerContainer};
-use discord_bot::DnD::DnDCommands;
+use discord_bot::DnD::{DnDCommands, RESOURCES_LIST};
 use discord_bot::DnD::DnDCommands::{DND_GROUP};
 use discord_bot::DnD::Schemas::APIReferenceList;
 
@@ -27,6 +27,9 @@ use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
+    //init the resource list
+    if !RESOURCES_LIST.is_empty(){println!("ok loading data");}
+    else {println!("loading data");}
     //discord bot token
     env::set_var("DISCORD_TOKEN", "MTE4MDgxMzM0MTk0NjU2MDU0Mg.Gesusw.IpfDTthqaJGcjMyVc_ow5yjSUuJYAkfkn7l7Ls");
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");

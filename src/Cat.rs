@@ -1,9 +1,9 @@
 use serde::Deserialize;
 use reqwest::{Client};
-use serenity::all::{Message};
+use serenity::all::{Message, ResolvedOption};
 use serenity::prelude::*;
 use serenity::all::standard::macros;
-use serenity::builder::{CreateAttachment, CreateEmbed, CreateEmbedFooter, CreateMessage};
+use serenity::builder::{CreateAttachment, CreateCommand, CreateEmbed, CreateEmbedFooter, CreateMessage};
 use serenity::model::Timestamp;
 use serenity::framework::standard::*;
 
@@ -80,4 +80,12 @@ async fn cat_help(ctx: &Context, msg: &Message, args: Args) -> CommandResult{
     };
     msg.channel_id.say(&ctx.http, saying).await.expect("could not send help");
     Ok(())
+}
+
+pub fn run(_options: &[ResolvedOption]) -> String {
+    "Hey, I'm alive!".to_string()
+}
+
+pub fn register() -> CreateCommand {
+    CreateCommand::new("cat").description("A cat command")
 }

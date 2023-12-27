@@ -28,6 +28,7 @@ impl Skill{
     }
 }
 
+///get skill's instance from a json serde_json::Value
 #[async_trait]
 impl Convert for Skill{
     async fn from_value(&mut self, json: Value) {

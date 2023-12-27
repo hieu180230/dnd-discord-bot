@@ -117,10 +117,10 @@ impl Choice {
         let mut res: String = "".to_string();
         if self.desc != "".to_string(){
             if self.choose != -1 {
-                res += &*format!("#{} ({} choice(s))\n", self.desc, self.choose);
+                res += &*format!("># {} ({} choice(s))\n", self.desc, self.choose);
             }
             else{
-                res += &*format!("#{}\n", self.desc);
+                res += &*format!("># {}\n", self.desc);
             }
         }
 
@@ -144,7 +144,7 @@ impl Choice {
                     }
                     "reference" => {
                         for reference in &self.from.options {
-                            res += &*format!("- *[{}]({}{})*\n", reference.reference.name, API_SERVER, reference.reference.url);
+                            res += &*format!("- *{}*\n", reference.reference.name);
                         }
                     }
                     "" => {}
