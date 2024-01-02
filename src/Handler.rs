@@ -1,6 +1,6 @@
 use std::marker::Send;
 use std::sync::Arc;
-use std::{env, error};
+use std::{error};
 use crate::{I_HELP_COMMAND, HELP_MESSAGE, Cat};
 
 use std::time::Duration;
