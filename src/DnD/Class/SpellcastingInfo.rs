@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::format;
 use std::string::ToString;
 use reqwest::{Client};
 
@@ -67,3 +68,15 @@ impl Convert for SpellCasting{
     }
 }
 
+impl SpellCasting{
+    pub async fn display(&self) -> String{
+        let mut res = "".to_string();
+        //level
+        if self.level != -1{
+            res += &*format!("**Level**: {}\n", self.level);
+        }
+        //spellcasting ability
+        res += &*format!("**Ability**: {}\n", self.spellcasting_ability.name);
+        res
+    }
+}

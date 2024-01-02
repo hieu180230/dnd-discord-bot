@@ -185,13 +185,25 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
         //turn fields into String for display
         let mut title: String = format!("{}",a.reference.name);
         if a.hit_die != -1 { title += &*format!(" ({} hit(s) to death)", a.hit_die); }
-        //if a.class_levels != "" { title += &*format!(" (Level resource: {}{})", API_SERVER, a.class_levels); }
+        if a.class_levels != "" { title += &*format!(" (Level resource: {}{})", API_SERVER, a.class_levels); }
         let mut proficiency_choice:String = "".to_string();
         for pro in a.proficiency_choices{
-            let pro_display = pro.display().await;
+            let pro_display = pro.display(0).await;
             proficiency_choice += &*format!("{}\n",pro_display)
         }
         let proficiencies = APIReference::display(a.proficiencies);
+        let saving_throws = APIReference::display(a.saving_throws);
+        let mut starting_equipment = "".to_string();
+        for (equipment, quantity) in a.starting_equipment{
+            starting_equipment += &*format!("- *{} ({})*\n", equipment.name, quantity);
+        }
+        let mut starting_equipment_options = "".to_string();
+        for option in a.starting_equipment_options{
+            starting_equipment_options += &*format!("{}", option.display(0).await);
+        }
+        let multiclass = a.multi_classing.display().await;
+        let subclass = APIReference::display(a.subclasses);
+        let spellcasting = a.spellcasting.display().await;
 
         //Create the embed for the main message
         let mut embed = CreateEmbed::new()
@@ -209,6 +221,12 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
                 options:vec![
                     CreateSelectMenuOption::new("Proficiency choices", "Proficiency choices"),
                     CreateSelectMenuOption::new("Proficiencies", "Proficiencies"),
+                    CreateSelectMenuOption::new("Saving throws", "Saving throws"),
+                    CreateSelectMenuOption::new("Starting equipments", "Starting equipments"),
+                    CreateSelectMenuOption::new("Starting equipment options", "Starting equipment options"),
+                    CreateSelectMenuOption::new("Multiclassing", "Multiclassing"),
+                    CreateSelectMenuOption::new("Subclass", "Subclass"),
+                    CreateSelectMenuOption::new("Spellcasting", "Spellcasting"),
                 ]
             }).placeholder("No components selected")
             );
@@ -226,7 +244,6 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
                 return Ok(())
             },
         };
-
         //get what component to display and its value
         let option = match &_interaction.data.kind {
             ComponentInteractionDataKind::StringSelect {
@@ -237,26 +254,99 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
         let option_value = match option.as_str(){
             "Proficiency choices" => proficiency_choice,
             "Proficiencies" => proficiencies,
+            "Saving throws" => saving_throws,
+            "Starting equipments" => starting_equipment,
+            "Starting equipment options" => starting_equipment_options,
+            "Multiclassing" => multiclass,
+            "Subclass" => subclass,
             _ => {"".to_string()},
         };
 
-        _interaction
-            .create_response(
-                &ctx,
-                // This time we dont edit the message but reply to it
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::default()
-                        // Make the message hidden for other users by setting `ephemeral(true)`.
-                        .ephemeral(true)
-                        .content(format!("Proficiency choices"))
-                        .embed(CreateEmbed::new()
-                                   .title(format!("{} for {}",option, a.reference.name))
-                                   .field("", format!("{}",option_value), false),
-                        ),
-                ))
-            .await
-            .unwrap();
-        m.delete(&ctx).await.unwrap();
+        if option == "Spellcasting"{
+            let mut sp_menu_option = Vec::new();
+            for info in &a.spellcasting.info
+            {
+                sp_menu_option.push(CreateSelectMenuOption::new(&info.feature_type, &info.feature_type));
+            }
+            let sp_m = msg.channel_id.send_message(
+                    &ctx,
+                    CreateMessage::new()
+                            // Make the message hidden for other users by setting `ephemeral(true)`.
+                            .content(format!("Spellcasting for class {}", a.reference.name))
+                            .embed(CreateEmbed::new()
+                                .title(format!("Spellcasting for class {}", a.reference.name))
+                                .field("", spellcasting, false))
+                            .select_menu(CreateSelectMenu::new("Component select", CreateSelectMenuKind::String {
+                                options:sp_menu_option,
+                            }).placeholder("No components selected")
+                            ),
+                    )
+                .await
+                .unwrap();
+            m.delete(&ctx).await.unwrap();
+
+            let mut sp_interaction = match sp_m
+                .await_component_interaction(&ctx.shard)
+                .timeout(Duration::from_secs(60))
+                .await
+            {
+                Some(x) => x,
+                None => {
+                    return Ok(())
+                },
+            };
+
+            let sp_option = match &sp_interaction.data.kind {
+                ComponentInteractionDataKind::StringSelect {
+                    values,
+                } => &values[0],
+                _ => panic!("unexpected interaction data kind"),
+            };
+
+            let mut sp_response = "".to_string();
+            for info in &a.spellcasting.info{
+                if &info.feature_type==sp_option{
+                    sp_response = info.display(0).await;
+                }
+            }
+            sp_interaction
+                .create_response(
+                    &ctx,
+                    // This time we dont edit the message but reply to it
+                    CreateInteractionResponse::Message(
+                        CreateInteractionResponseMessage::default()
+                            // Make the message hidden for other users by setting `ephemeral(true)`.
+                            .ephemeral(true)
+                            .content(format!("Spellcasting: {} for class {}", sp_option, a.reference.name))
+                            .embed(CreateEmbed::new()
+                                       .title(format!("Spellcasting: *{}* for class {}", sp_option, a.reference.name))
+                                       .description(format!("{}", sp_response)),
+                            ),
+                    ))
+                .await
+                .unwrap();
+            sp_m.delete(&ctx).await.unwrap();
+        }
+        else
+        {
+            _interaction
+                .create_response(
+                    &ctx,
+                    // This time we dont edit the message but reply to it
+                    CreateInteractionResponse::Message(
+                        CreateInteractionResponseMessage::default()
+                            // Make the message hidden for other users by setting `ephemeral(true)`.
+                            .ephemeral(true)
+                            .content(format!("{} for class {}", option, a.reference.name))
+                            .embed(CreateEmbed::new()
+                                       .title(format!("{} for class {}", option, a.reference.name))
+                                       .field("", format!("{}", option_value), false),
+                            ),
+                    ))
+                .await
+                .unwrap();
+            m.delete(&ctx).await.unwrap();
+        }
     }
     else
     {

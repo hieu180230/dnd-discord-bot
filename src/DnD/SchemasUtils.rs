@@ -113,43 +113,93 @@ impl Choice {
         self.from = _option_set;
     }
 
-    pub async fn display(&self) -> String{
+    #[async_recursion]
+    pub async fn display(&self, level: i64) -> String{
+        let mut bullet = "";
+        if level%2 == 0{
+            bullet = "-";
+        }
+        else{
+            bullet = "*";
+        }
         let mut res: String = "".to_string();
         if self.desc != "".to_string(){
             if self.choose != -1 {
-                res += &*format!("># {} ({} choice(s))\n", self.desc, self.choose);
+                res += &*format!("**{} ({} choice(s))**", self.desc, self.choose);
             }
             else{
-                res += &*format!("># {}\n", self.desc);
+                res += &*format!("**{}**", self.desc);
+            }
+            if self.choice_type != "".to_string(){
+                res += &*format!(" **({})**\n", self.choice_type)
+            }
+            else{
+                res += "\n";
             }
         }
-
+        if level == 0
+        {
+            for _ in [0..level - 1]
+            {
+                res += " ";
+            }
+        }
         match &*self.from.option_set_type {
             "options_array" => {
-                match &*self.from.options[0].option_type{
-                    "string" => {
-                        for i in &self.from.options {
-                            res += &*format!("- *{}*\n", i.string);
+                for option in &self.from.options
+                {
+                    if level != 0
+                    {
+                        for _ in [0..level - 1]
+                        {
+                            res += " ";
                         }
                     }
-                    "ideal" => {
-                        for ideal in &self.from.options {
-                            let mut string_ideal: String = format!("- *{}* (", ideal.ideal.desc);
-                            for alignment in &ideal.ideal.alignments {
+                    match &*option.option_type {
+                        "string" => {
+                            res += &*format!("{} *{}*\n", bullet,  option.string);
+                        }
+                        "ideal" => {
+                            let mut string_ideal: String = format!("{} *{}* (", bullet, option.ideal.desc);
+                            for alignment in &option.ideal.alignments {
                                 string_ideal += &*format!("{} / ", alignment.name);
                             }
                             string_ideal = string_ideal[0..string_ideal.len() - 3].to_string();
                             res += &*format!("{})\n", string_ideal);
                         }
-                    }
-                    "reference" => {
-                        for reference in &self.from.options {
-                            res += &*format!("- *{}*\n", reference.reference.name);
+                        "reference" => {
+                            res += &*format!("{} *{}*\n", bullet, option.reference.name);
                         }
+                        "counted_reference" => {
+                            res += &*format!("{} *{} ({})*\n", bullet, option.counted_reference.of.name, option.counted_reference.count);
+                        }
+                        "choice" => {
+                            res += &*format!("{} {}\n", bullet, option.choice.display(level + 1).await)
+                        }
+                        "" => {}
+                        _ => {}
                     }
-                    "" => {}
-                    _ => {}
                 }
+            }
+            "equipment_category" => {
+                if level != 0
+                {
+                    for _ in [0..level - 1]
+                    {
+                        res += " ";
+                    }
+                }
+                res += &*format!("- *{}*\n", self.from.equipment_category.name);
+            }
+            "resource_list" => {
+                if level != 0
+                {
+                    for _ in [0..level - 1]
+                    {
+                        res += " ";
+                    }
+                }
+                res += &*format!("- *{}*\n", self.from.resource_list_url);
             }
             _ => {}
         }

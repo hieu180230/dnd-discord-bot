@@ -19,6 +19,21 @@ pub struct Feature{
     pub desc:Vec<String>,
 }
 impl Feature{
+    pub async fn display(&self, level: i64) -> String{
+        let mut res = "".to_string();
+        for i in &self.desc
+        {
+            for _ in [0..level-1]
+            {
+                res += " ";
+            }
+            res += &*format!("* *{}*\n", i);
+        }
+        res
+    }
+}
+
+impl Feature{
     pub fn new() -> Self{
         Feature{
             feature_type:"".to_string(),
@@ -182,11 +197,11 @@ pub async fn send_background_response(ctx: &Context, msg: &Message, ali_type:Str
         let mut feature: String = "".to_string();
         let mut starting_profi: String = "".to_string();
         let mut starting_equipments: String = "".to_string();
-        let personality: String = a.personality.display().await;
+        let personality: String = a.personality.display(0).await;
         let mut starting_equipment_option: String = "".to_string();
-        let ideals: String = a.ideals.display().await;
-        let flaws: String = a.flaws.display().await;
-        let bonds: String = a.bonds.display().await;
+        let ideals: String = a.ideals.display(0).await;
+        let flaws: String = a.flaws.display(0).await;
+        let bonds: String = a.bonds.display(0).await;
 
         for i in a.starting_proficiencies
         {

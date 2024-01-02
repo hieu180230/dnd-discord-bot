@@ -1,17 +1,10 @@
-use std::collections::HashMap;
-use std::ops::Mul;
 use std::string::ToString;
-use reqwest::{Client};
 
 use serenity::async_trait;
-use serenity::framework::standard::*;
-use serenity::all::{CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serenity::builder::CreateEmbed;
 
-use serde_json::{from_str, Value};
+use serde_json::{Value};
 
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
 use crate::DnD::Schemas::{APIReference, Choice, ScorePrerequisite};
 use crate::DnD::CharData::{Convert};
 
@@ -83,5 +76,45 @@ impl Convert for Multiclassing{
             }
             None => print!("?"),
         }
+    }
+}
+
+impl Multiclassing{
+    pub async fn display(&self) -> String{
+        let mut res = "".to_string();
+        //prerequisites
+        if !self.prerequisites.is_empty()
+        {
+            res += "**Prerequisites**\n";
+            for pre in &self.prerequisites {
+                res += &*format!("- *{} (minimum score: {})*\n", pre.ability_score.name, pre.minimum_score);
+            }
+        }
+        //prerequisite choices
+        if !self.prerequisite_options.is_empty()
+        {
+            res += "**Prerequisite choices**\n";
+            for choice in &self.prerequisite_options {
+                res += &*choice.display(0).await;
+            }
+        }
+        //proficiencies
+        if !self.proficiencies.is_empty()
+        {
+            res += "**Proficiencies**\n";
+            for pro in &self.proficiencies {
+                res += &*format!("- *{}*\n", pro.name)
+            }
+        }
+        //proficiency choices
+        if !self.proficiency_choices.is_empty()
+        {
+            res += "**Proficiency choices**\n";
+            for choice in &self.proficiency_choices {
+                res += &*format!("* {}",choice.display(1).await);
+            }
+        }
+
+        res
     }
 }
