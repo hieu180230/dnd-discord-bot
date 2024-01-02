@@ -1,4 +1,4 @@
-#[allow(non_camel_case_types)]
+#![allow(non_camel_case_types)]
 use std::collections::HashMap;
 use reqwest::Client;
 
@@ -38,6 +38,12 @@ impl APIReference{
             res += &*format!("- *{}*\n", t.name);
         }
         return res;
+    }
+}
+
+impl Default for APIReference {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
