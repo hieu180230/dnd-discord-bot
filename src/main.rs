@@ -14,7 +14,6 @@ use serenity::{
     prelude::*,
     framework::standard::*
 };
-use discord_bot::Cat::CAT_GROUP;
 use discord_bot::Handler::{Handler, MANAGER_GROUP, ShardManagerContainer};
 use discord_bot::DnD::{DnDCommands, RESOURCES_LIST};
 use discord_bot::DnD::DnDCommands::{DND_GROUP};
@@ -38,7 +37,6 @@ async fn main() {
         | GatewayIntents::MESSAGE_CONTENT;
     let framework : StandardFramework = StandardFramework::new()
         .group(&MANAGER_GROUP)
-        .group(&CAT_GROUP)
         .group(&DND_GROUP);
     framework.configure(Configuration::new().prefix("!"));
 

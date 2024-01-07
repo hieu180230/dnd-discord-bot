@@ -307,6 +307,9 @@ impl APIReferenceList{
             results: vec![],
         }
     }
+
+
+    //this function is to load everything from the api
     pub async fn load() -> HashMap<String, Self>{
         let mut resources: HashMap<String, APIReferenceList> = HashMap::new();
         for endpoint in ENDPOINTS{

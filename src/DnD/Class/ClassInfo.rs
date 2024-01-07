@@ -8,9 +8,10 @@ use serenity::async_trait;
 use serenity::framework::standard::*;
 use serenity::all::{ComponentInteractionDataKind, CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serenity::builder::{CreateButton, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption};
+use serenity::builder::{CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, EditMessage};
 
 use serde_json::{from_str, Value};
+use serde_json::de::Read;
 
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 use crate::DnD::Schemas::{APIReference, Choice};
@@ -183,6 +184,7 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
         a.from_value(json.clone()).await;
 
         //turn fields into String for display
+        let nil = "None".to_string();
         let mut title: String = format!("{}",a.reference.name);
         if a.hit_die != -1 { title += &*format!(" ({} hit(s) to death)", a.hit_die); }
         if a.class_levels != "" { title += &*format!(" (Level resource: {}{})", API_SERVER, a.class_levels); }
@@ -203,7 +205,8 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
         }
         let multiclass = a.multi_classing.display().await;
         let subclass = APIReference::display(a.subclasses);
-        let spellcasting = a.spellcasting.display().await;
+        let mut spellcasting = a.spellcasting.display().await;
+        if spellcasting == "" {spellcasting = nil.clone()}
 
         //Create the embed for the main message
         let mut embed = CreateEmbed::new()
@@ -232,121 +235,129 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
             );
 
         //Send the message and wait for interactions
-        let m = msg.channel_id.send_message(&ctx.http, builder).await.unwrap();
+        let mut m = msg.channel_id.send_message(&ctx.http, builder).await.unwrap();
 
-        let mut _interaction = match m
+        let mut interaction = m
             .await_component_interaction(&ctx.shard)
             .timeout(Duration::from_secs(60))
-            .await
-        {
-            Some(x) => x,
-            None => {
-                return Ok(())
-            },
-        };
-        //get what component to display and its value
-        let option = match &_interaction.data.kind {
-            ComponentInteractionDataKind::StringSelect {
-                values,
-            } => &values[0],
-            _ => panic!("unexpected interaction data kind"),
-        };
-        let option_value = match option.as_str(){
-            "Proficiency choices" => proficiency_choice,
-            "Proficiencies" => proficiencies,
-            "Saving throws" => saving_throws,
-            "Starting equipments" => starting_equipment,
-            "Starting equipment options" => starting_equipment_options,
-            "Multiclassing" => multiclass,
-            "Subclass" => subclass,
-            _ => {"".to_string()},
-        };
+            .stream();
 
-        if option == "Spellcasting"{
-            let mut sp_menu_option = Vec::new();
-            for info in &a.spellcasting.info
-            {
-                sp_menu_option.push(CreateSelectMenuOption::new(&info.feature_type, &info.feature_type));
-            }
-            let sp_m = msg.channel_id.send_message(
-                    &ctx,
-                    CreateMessage::new()
-                            // Make the message hidden for other users by setting `ephemeral(true)`.
-                            .content(format!("Spellcasting for class {}", a.reference.name))
-                            .embed(CreateEmbed::new()
-                                .title(format!("Spellcasting for class {}", a.reference.name))
-                                .field("", spellcasting, false))
-                            .select_menu(CreateSelectMenu::new("Component select", CreateSelectMenuKind::String {
-                                options:sp_menu_option,
-                            }).placeholder("No components selected")
-                            ),
-                    )
-                .await
-                .unwrap();
-            m.delete(&ctx).await.unwrap();
-
-            let mut sp_interaction = match sp_m
-                .await_component_interaction(&ctx.shard)
-                .timeout(Duration::from_secs(60))
-                .await
-            {
-                Some(x) => x,
-                None => {
-                    return Ok(())
-                },
-            };
-
-            let sp_option = match &sp_interaction.data.kind {
+        while let Some(user_interactions) = interaction.next().await {
+            println!("{:?}", &user_interactions.data.kind);
+            //get what component to display and its value
+            let option = match &user_interactions.data.kind {
                 ComponentInteractionDataKind::StringSelect {
                     values,
                 } => &values[0],
                 _ => panic!("unexpected interaction data kind"),
             };
+            let option_value = match option.as_str() {
+                "Proficiency choices" => &proficiency_choice,
+                "Proficiencies" => &proficiencies,
+                "Saving throws" => &saving_throws,
+                "Starting equipments" => &starting_equipment,
+                "Starting equipment options" => &starting_equipment_options,
+                "Multiclassing" => &multiclass,
+                "Subclass" => &subclass,
+                _ => { &nil },
+            };
 
-            let mut sp_response = "".to_string();
-            for info in &a.spellcasting.info{
-                if &info.feature_type==sp_option{
-                    sp_response = info.display(0).await;
+            if option == "Spellcasting" {
+                //prepare the menu for spellcasting
+                let mut sp_menu_option = Vec::new();
+                for info in &a.spellcasting.info
+                {
+                    sp_menu_option.push(CreateSelectMenuOption::new(&info.feature_type, &info.feature_type));
                 }
+                //prepare the interaction message
+                //if the spellcasting is available there will be a menu
+                // if not, the menu will not be functional
+                let mut response =
+                    CreateInteractionResponseMessage::default()
+                        // Make the message hidden for other users by setting `ephemeral(true)`.
+                        .ephemeral(false)
+                        .content(format!("Spellcasting for class {}", a.reference.name))
+                        .embed(CreateEmbed::new()
+                            .title(format!("Spellcasting for class {}", a.reference.name))
+                            .field("", &spellcasting, false));
+                if !sp_menu_option.clone().is_empty() {
+                    response = response.select_menu(
+                        CreateSelectMenu::new("Component select", CreateSelectMenuKind::String {
+                            options: sp_menu_option.clone(),
+                        }).placeholder("No components selected"));
+                }
+                //update the message
+                user_interactions
+                    .create_response(
+                        &ctx,
+                        //Edit the message
+                        CreateInteractionResponse::UpdateMessage(response)
+                    )
+                    .await
+                    .unwrap();
+
+                //if spellcasting is not available, end the function
+                if sp_menu_option.clone().is_empty() {
+                    return Ok(())
+                }
+
+                //if the spellcasting is available, wait for the interaction of users
+                let mut _interaction_stream = m
+                    .await_component_interaction(&ctx.shard)
+                    .timeout(Duration::from_secs(60)).stream();
+
+                //if there are interactions within the duration, process the reply
+                while let Some(sp_interaction) = _interaction_stream.next().await {
+                    let sp_option = match &sp_interaction.data.kind {
+                        ComponentInteractionDataKind::StringSelect {
+                            values,
+                        } => &values[0],
+                        _ => panic!("unexpected interaction data kind"),
+                    };
+                    let mut sp_response = "".to_string();
+                    for info in &a.spellcasting.info {
+                        if &info.feature_type == sp_option {
+                            sp_response = info.display(0).await;
+                        }
+                    }
+                    //reply to the request
+                    sp_interaction
+                        .create_response(
+                            &ctx,
+                            // This time we dont edit the message but reply to it
+                            CreateInteractionResponse::UpdateMessage(
+                                CreateInteractionResponseMessage::default()
+                                    // Make the message hidden for other users by setting `ephemeral(true)`.
+                                    .ephemeral(false)
+                                    .content(format!("Spellcasting: {} for class {}", sp_option, a.reference.name))
+                                    .embed(CreateEmbed::new()
+                                               .title(format!("Spellcasting: *{}* for class {}", sp_option, a.reference.name))
+                                               .description(format!("{}", sp_response)),
+                                    ),
+                            ))
+                        .await
+                        .unwrap();
+                }
+            } else {
+                user_interactions
+                    .create_response(
+                        &ctx,
+                        // This time we dont edit the message but reply to it
+                        CreateInteractionResponse::UpdateMessage(
+                            CreateInteractionResponseMessage::default()
+                                // Make the message hidden for other users by setting `ephemeral(true)`.
+                                .ephemeral(false)
+                                .content(format!("{} for class {}", option, a.reference.name))
+                                .embed(CreateEmbed::new()
+                                           .title(format!("{} for class {}", option, a.reference.name))
+                                           .field("", format!("{}", option_value), false),
+                                ),
+                        ))
+                    .await
+                    .unwrap();
             }
-            sp_interaction
-                .create_response(
-                    &ctx,
-                    // This time we dont edit the message but reply to it
-                    CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::default()
-                            // Make the message hidden for other users by setting `ephemeral(true)`.
-                            .ephemeral(true)
-                            .content(format!("Spellcasting: {} for class {}", sp_option, a.reference.name))
-                            .embed(CreateEmbed::new()
-                                       .title(format!("Spellcasting: *{}* for class {}", sp_option, a.reference.name))
-                                       .description(format!("{}", sp_response)),
-                            ),
-                    ))
-                .await
-                .unwrap();
-            sp_m.delete(&ctx).await.unwrap();
         }
-        else
-        {
-            _interaction
-                .create_response(
-                    &ctx,
-                    // This time we dont edit the message but reply to it
-                    CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::default()
-                            // Make the message hidden for other users by setting `ephemeral(true)`.
-                            .ephemeral(true)
-                            .content(format!("{} for class {}", option, a.reference.name))
-                            .embed(CreateEmbed::new()
-                                       .title(format!("{} for class {}", option, a.reference.name))
-                                       .field("", format!("{}", option_value), false),
-                            ),
-                    ))
-                .await
-                .unwrap();
-            m.delete(&ctx).await.unwrap();
-        }
+        m.delete(&ctx).await.unwrap();
     }
     else
     {

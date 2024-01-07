@@ -21,11 +21,19 @@ pub struct Feature{
 impl Feature{
     pub async fn display(&self, level: i64) -> String{
         let mut res = "".to_string();
-        for i in &self.desc
-        {
+        if level == 0{
             for _ in [0..level-1]
             {
                 res += " ";
+            }
+        }
+        for i in &self.desc
+        {
+            if level != 0 {
+                for _ in [0..level - 1]
+                {
+                    res += " ";
+                }
             }
             res += &*format!("* *{}*\n", i);
         }

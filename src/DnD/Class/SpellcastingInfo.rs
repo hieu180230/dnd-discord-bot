@@ -77,6 +77,10 @@ impl SpellCasting{
         }
         //spellcasting ability
         res += &*format!("**Ability**: {}\n", self.spellcasting_ability.name);
+        //If no spellcasting for this class
+        if self.level == -1 && self.spellcasting_ability.name == ""{
+            res = "**None**".to_string();
+        }
         res
     }
 }

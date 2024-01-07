@@ -1,9 +1,10 @@
 use std::marker::Send;
 use std::sync::Arc;
 use std::{error};
-use crate::{I_HELP_COMMAND, HELP_MESSAGE, Cat};
+use crate::{HELP_MESSAGE, Cat};
 
 use std::time::Duration;
+use serenity::all::CreateEmbed;
 
 use serenity::async_trait;
 use serenity::builder::{CreateButton, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption};
@@ -212,12 +213,12 @@ impl EventHandler for Handler {
             println!("Received command interaction: {:?}",command.data.name);
 
             let content = match command.data.name.as_str() {
-                "cat" => Some(Cat::run(&command.data.options())),
-                _ => Some("not implemented :(".to_string()),
+                "cat" => Some(Cat::run(&ctx, &command.data.options(), &command).await),
+                _ => Some(CreateEmbed::new().title("not implemented :(".to_string()).description("???")),
             };
 
             if let Some(content) = content {
-                let data = CreateInteractionResponseMessage::new().content(content);
+                let data = CreateInteractionResponseMessage::new().embed(content);
                 let builder = CreateInteractionResponse::Message(data);
                 if let Err(why) = command.create_response(&ctx.http, builder).await {
                     println!("Cannot respond to slash command: {why}");

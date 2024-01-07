@@ -13,7 +13,7 @@ struct Activity{
 }
 
 impl Activity {
-    fn toString(&self) -> String{
+    pub fn display(&self) -> String{
         format!("Activity: {act}", act=self._activity)
     }
 }
