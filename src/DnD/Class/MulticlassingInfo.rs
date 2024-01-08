@@ -6,7 +6,7 @@ use serenity::prelude::*;
 use serde_json::{Value};
 
 use crate::DnD::Schemas::{APIReference, Choice, ScorePrerequisite};
-use crate::DnD::CharData::{Convert};
+use crate::DnD::{Convert};
 
 pub struct Multiclassing{
     pub prerequisites:Vec<ScorePrerequisite>,

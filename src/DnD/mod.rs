@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::convert::Into;
 use std::ops::Index;
 use lazy_static::lazy_static;
+use serenity::async_trait;
 use tokio::task;
 use crate::DnD::Schemas::APIReferenceList;
 
@@ -27,4 +28,9 @@ lazy_static! {
     pub static ref RESOURCES_LIST: HashMap<String, APIReferenceList> = {
         initialize_resources_list()
     };
+}
+
+#[async_trait]
+pub trait Convert{
+    async fn from_value(&mut self, json:serde_json::Value);
 }

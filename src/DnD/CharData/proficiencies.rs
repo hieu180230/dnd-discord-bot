@@ -1,14 +1,17 @@
 use crate::DnD::Schemas::APIReference;
+use crate::DnD::{Convert};
+use crate::DnD::{API_SERVER, RESOURCES_LIST};
+
 use std::string::ToString;
 use reqwest::{Client};
+use serde_json::from_str;
+
 use serenity::async_trait;
-use crate::DnD::CharData::Convert;
 use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serde_json::from_str;
 use serenity::builder::CreateEmbed;
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
+
 
 const PROFICIENCIES_URL: &str = "/api/proficiencies/";
 

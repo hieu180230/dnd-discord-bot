@@ -4,9 +4,10 @@ use reqwest::Client;
 
 use serde::Deserialize;
 use serde_json::{Value, Map, from_str};
-use serde_json::map::Values;
+use serenity::all::{CreateInteractionResponseMessage, Timestamp};
+use serenity::builder::{CreateButton, CreateEmbed, CreateMessage};
 
-use crate::DnD::API_SERVER;
+use crate::DnD::{API_SERVER};
 
 
 //this store the API reference of an item
@@ -24,7 +25,8 @@ impl APIReference{
             url:"".to_string(),
         }
     }
-    pub fn parse(T: &Value) -> Self{
+
+    pub fn parse(T: &serde_json::Value) -> Self {
         APIReference{
             index:T["index"].as_str().unwrap().to_string(),
             name:T["name"].as_str().unwrap().to_string(),
@@ -40,6 +42,7 @@ impl APIReference{
         return res;
     }
 }
+
 
 impl Default for APIReference {
     fn default() -> Self {
@@ -86,7 +89,7 @@ impl Damage{
     }
 }
 
-//Opiton and its structs
+//Option and its structs
 
 //Contains information describing an action, for use within multiple attacks actions and/or attack action.
 #[derive(Deserialize, Debug)]
@@ -126,7 +129,7 @@ impl Ideal{
             alignments:vec![],
         }
     }
-    pub fn parse(object: &Map<String, Value>) -> Self {
+    pub fn parse(object: &serde_json::Map<String, Value>) -> Self {
         let mut ideal = Ideal::new();
         ideal.desc = object["desc"].as_str().unwrap().to_string();
         //alignment is a vector of objects (APIReference)
@@ -173,7 +176,7 @@ impl ScorePrerequisite{
             minimum_score:-1,
         }
     }
-    pub fn parse(T: &Value) -> Self{
+    pub fn parse(T: &serde_json::Value) -> Self{
         ScorePrerequisite{
             ability_score: APIReference {
                 index: T["ability_score"].as_object().unwrap()["index"].as_str().unwrap().to_string(),
@@ -270,7 +273,7 @@ impl OptionSet{
         }
     }
 }
-//a choice made by a player. Commonly seen related to decisions made during character creation or combat
+///a choice made by a player. Commonly seen related to decisions made during character creation or combat
 #[derive(Deserialize, Debug)]
 pub struct Choice{
     pub desc:String,
@@ -308,8 +311,7 @@ impl APIReferenceList{
         }
     }
 
-
-    //this function is to load everything from the api
+    ///This function is to load everything from the API
     pub async fn load() -> HashMap<String, Self>{
         let mut resources: HashMap<String, APIReferenceList> = HashMap::new();
         for endpoint in ENDPOINTS{
@@ -335,6 +337,34 @@ impl APIReferenceList{
             resources.insert(endpoint.to_string(), references);
         }
         resources
+    }
+
+    ///This function is to display as a paginated message on discord
+    /// *The info parameter will contain the name of the class and the name of that class's resource list
+    pub async fn display(&self, info: Vec<String>) -> (CreateMessage, Vec<&[APIReference]>){
+        let mut display_data = vec![];
+        let mut start = 0; let mut end = 9;
+        while end <= self.results.len() - 1 {
+            display_data.push(&self.results[start..=end]);
+            start += 10;
+            end += 10;
+        }
+        display_data.push(&self.results[start..]);
+        let mut embed = CreateEmbed::new();
+        embed = embed.title(format!("{} of {} (1)", info[1], info[0]));
+        for i in 0..9{
+            embed = embed.field(&*display_data[0][i].name, &*display_data[0][i].index, true);
+        }
+        embed = embed.timestamp(Timestamp::now());
+        let builder = CreateMessage::new()
+            .content(format!("{} of {}", info[1], info[0]))
+            .embed(embed)
+            .button(CreateButton::new("first").label("<<"))
+            .button(CreateButton::new("prev").label("<"))
+            .button(CreateButton::new("next").label(">"))
+            .button(CreateButton::new("last").label(">>"));
+
+        (builder, display_data)
     }
 }
 

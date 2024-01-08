@@ -13,8 +13,8 @@ use serde_json::{from_str, Value};
 
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 use crate::DnD::Schemas::{APIReference, Choice};
-use crate::DnD::CharData::{Convert, Background};
-use crate::DnD::CharData::AbilityScore::AbilityScore;
+use crate::DnD::CharData::{ Background};
+use crate::DnD::{Convert};
 
 pub struct SpellCasting{
     pub level:i64,

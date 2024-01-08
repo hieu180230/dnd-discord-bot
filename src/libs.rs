@@ -1,9 +1,10 @@
 #![allow(non_snake_case)]
+#![warn(missing_docs)]
+
 pub mod Handler;
 pub mod Activity;
 pub mod Joke;
 pub mod Cat;
-
 //for D&D
 pub mod DnD;
 

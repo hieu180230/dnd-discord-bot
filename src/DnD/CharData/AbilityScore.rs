@@ -1,16 +1,19 @@
 use std::string::ToString;
 use serde::Deserialize;
+use serde_json::from_str;
 use reqwest::{Client};
-use serenity::async_trait;
-use crate::DnD::CharData::Convert;
+
+use crate::DnD::{Convert};
 use crate::DnD::Schemas::APIReference;
+use crate::DnD::{API_SERVER, RESOURCES_LIST};
+use crate::DnD::DnDCommands::str_from_vec;
+
 use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serde_json::from_str;
+use serenity::async_trait;
 use serenity::builder::CreateEmbed;
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
-use crate::DnD::DnDCommands::str_from_vec;
+
 
 const ABILITY: &str = "/api/ability-scores/";
 

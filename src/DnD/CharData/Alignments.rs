@@ -1,15 +1,18 @@
 use serde_json::Value;
-use crate::DnD::CharData::Convert;
-use crate::DnD::Schemas::APIReference;
+use serde_json::from_str;
 use std::string::ToString;
 use reqwest::{Client};
+
+use crate::DnD::{Convert};
+use crate::DnD::Schemas::APIReference;
+use crate::DnD::{API_SERVER, RESOURCES_LIST};
+
 use serenity::async_trait;
 use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
 use serenity::prelude::*;
-use serde_json::from_str;
 use serenity::builder::CreateEmbed;
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
+
 
 pub struct Alignment{
     reference:APIReference,

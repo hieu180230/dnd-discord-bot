@@ -11,6 +11,7 @@ use crate::DnD::Class::ClassInfo::*;
 
 use serenity::prelude::*;
 use serenity::all::{Message};
+use crate::DnD::Class::ClassResourceList::send_class_resource_response;
 use crate::DnD::RESOURCES_LIST;
 
 
@@ -141,17 +142,40 @@ async fn look_up_skill(ctx: &Context, msg: &Message, args: Args) -> CommandResul
 #[macros::command]
 #[aliases(class)]
 async fn look_up_class(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let alias = args.clone();
+    let mut alias = args.clone();
     if alias.current().unwrap_or_default().to_lowercase() == "all".to_string(){
         send_class_response(ctx, msg, "all".to_string()).await.expect("TODO: panic message");
         return Ok(());
     }
     for i in &RESOURCES_LIST["classes"].results{
         if alias.current().unwrap_or_default().to_lowercase() == i.index.to_string() {
-            send_class_response(ctx, msg, i.index.to_string()).await.expect("TODO: panic message");
+            if alias.advance().current() == None {
+                send_class_response(ctx, msg, i.index.to_string()).await.expect("TODO: panic message");
+                return Ok(());
+            }
+            match alias.current().unwrap_or_default().to_lowercase().as_str(){
+                "subclasses" => {
+                    send_class_resource_response(ctx, msg, vec![i.index.to_string(), "subclass".to_string()])
+                        .await.expect("TODO: panic message")
+                }
+                "spells" => {
+                    send_class_resource_response(ctx, msg, vec![i.index.to_string(), "spells".to_string()])
+                        .await.expect("TODO: panic message")
+                }
+                "features" => {
+                    send_class_resource_response(ctx, msg, vec![i.index.to_string(), "features".to_string()])
+                        .await.expect("TODO: panic message")
+                }
+                "proficiencies" => {
+                    send_class_resource_response(ctx, msg, vec![i.index.to_string(), "proficiencies".to_string()])
+                        .await.expect("TODO: panic message")
+                }
+                _ => {}
+            }
             return Ok(());
         }
     }
     msg.reply(ctx, format!("Unknown alias: {:?}", alias.current().unwrap_or_default())).await?;
     Ok(())
 }
+

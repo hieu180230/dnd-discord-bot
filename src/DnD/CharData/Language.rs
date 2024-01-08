@@ -13,7 +13,7 @@ use serenity::async_trait;
 use serenity::builder::CreateEmbed;
 
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
-use crate::DnD::CharData::Convert;
+use crate::DnD::{Convert};
 use crate::DnD::Schemas::APIReference;
 
 #[derive(Clone, Debug)]

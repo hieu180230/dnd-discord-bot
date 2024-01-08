@@ -15,7 +15,7 @@ use serde_json::de::Read;
 
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 use crate::DnD::Schemas::{APIReference, Choice};
-use crate::DnD::CharData::Convert;
+use crate::DnD::{Convert};
 use crate::DnD::Class::{MulticlassingInfo::*, SpellcastingInfo::*};
 
 const CLASS_URL: &str = "/api/classes/";
@@ -239,11 +239,10 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
 
         let mut interaction = m
             .await_component_interaction(&ctx.shard)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(180))
             .stream();
 
         while let Some(user_interactions) = interaction.next().await {
-            println!("{:?}", &user_interactions.data.kind);
             //get what component to display and its value
             let option = match &user_interactions.data.kind {
                 ComponentInteractionDataKind::StringSelect {
@@ -304,7 +303,7 @@ pub async fn send_class_response(ctx: &Context, msg: &Message, _type:String) -> 
                 //if the spellcasting is available, wait for the interaction of users
                 let mut _interaction_stream = m
                     .await_component_interaction(&ctx.shard)
-                    .timeout(Duration::from_secs(60)).stream();
+                    .timeout(Duration::from_secs(180)).stream();
 
                 //if there are interactions within the duration, process the reply
                 while let Some(sp_interaction) = _interaction_stream.next().await {

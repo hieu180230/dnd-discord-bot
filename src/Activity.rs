@@ -1,3 +1,4 @@
+/// 
 use serde::Deserialize;
 
 //https://www.boredapi.com/api/activity
