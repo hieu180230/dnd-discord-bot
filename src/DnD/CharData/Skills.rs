@@ -1,67 +1,66 @@
+use crate::DnD::Convert;
 use crate::DnD::Schemas::APIReference;
-use crate::DnD::{Convert};
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
-use std::string::ToString;
-use reqwest::{Client};
+use reqwest::Client;
 use serde_json::{from_str, Value};
+use std::string::ToString;
 
-use serenity::async_trait;
-use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
-use serenity::prelude::*;
+use serenity::async_trait;
 use serenity::builder::CreateEmbed;
+use serenity::framework::standard::*;
+use serenity::prelude::*;
 
-
-pub struct Skill{
+pub struct Skill {
     pub reference: APIReference,
-    pub desc:Vec<String>,
-    pub ability_score:APIReference,
+    pub desc: Vec<String>,
+    pub ability_score: APIReference,
 }
 
 const SKILL_URL: &str = "/api/skills/";
 
-impl Skill{
-    pub fn new() -> Self{
-        Skill{
-            reference:APIReference::new(),
-            desc:vec![],
-            ability_score:APIReference::new(),
+impl Skill {
+    pub fn new() -> Self {
+        Skill {
+            reference: APIReference::new(),
+            desc: vec![],
+            ability_score: APIReference::new(),
         }
     }
 }
 
 ///get skill's instance from a json serde_json::Value
 #[async_trait]
-impl Convert for Skill{
+impl Convert for Skill {
     async fn from_value(&mut self, json: Value) {
-        match json.get("index"){
+        match json.get("index") {
             Some(T) => {
                 self.reference.index = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("name"){
+        match json.get("name") {
             Some(T) => {
                 self.reference.name = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("url"){
+        match json.get("url") {
             Some(T) => {
                 self.reference.url = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("desc"){
+        match json.get("desc") {
             Some(T) => {
-                for desc in T.as_array().unwrap(){
+                for desc in T.as_array().unwrap() {
                     self.desc.push(desc.as_str().unwrap().to_string());
                 }
             }
             None => print!("?"),
         }
-        match json.get("ability_score"){
+        match json.get("ability_score") {
             Some(T) => {
                 self.ability_score = APIReference::parse(T);
             }
@@ -70,11 +69,16 @@ impl Convert for Skill{
     }
 }
 
-pub async fn send_skill_response(ctx: &Context, msg: &Message, prf_type:String) -> CommandResult{
-    if prf_type != "all".to_string()
-    {
+pub async fn send_skill_response(ctx: &Context, msg: &Message, prf_type: String) -> CommandResult {
+    if prf_type != "all".to_string() {
         let client = Client::new();
-        let res = client.get(format!("{}{}{}", API_SERVER, SKILL_URL, prf_type.to_string()))
+        let res = client
+            .get(format!(
+                "{}{}{}",
+                API_SERVER,
+                SKILL_URL,
+                prf_type.to_string()
+            ))
             .send()
             .await
             .expect("fail to get to link")
@@ -93,34 +97,33 @@ pub async fn send_skill_response(ctx: &Context, msg: &Message, prf_type:String) 
         let mut embed = CreateEmbed::new()
             .title(format!("{}", a.reference.name))
             .description(description)
-            .field(format!("Ability Score ({})", a.ability_score.name),
-                   format!("{}{}", API_SERVER, a.ability_score.url), false);
+            .field(
+                format!("Ability Score ({})", a.ability_score.name),
+                format!("{}{}", API_SERVER, a.ability_score.url),
+                false,
+            );
 
         if a.reference.url != "" {
-            embed = embed.clone().url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            embed = embed
+                .clone()
+                .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
         }
         // Add a timestamp for the current time
         // This also accepts a rfc3339 Timestamp
         embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new()
-            .content(prf_type)
-            .embed(embed);
+        let builder = CreateMessage::new().content(prf_type).embed(embed);
         if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
             println!("Error {:?}", why);
         }
-    }
-    else
-    {
-        let mut embed = CreateEmbed::new()
-            .title("**All available Skills**");
-        for i in &RESOURCES_LIST["skills"].results
-        {
-            embed = embed.clone().field(format!("{}", i.name), format!("{}", i.index), true);
+    } else {
+        let mut embed = CreateEmbed::new().title("**All available Skills**");
+        for i in &RESOURCES_LIST["skills"].results {
+            embed = embed
+                .clone()
+                .field(format!("{}", i.name), format!("{}", i.index), true);
         }
         embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new()
-            .content(prf_type)
-            .embed(embed);
+        let builder = CreateMessage::new().content(prf_type).embed(embed);
         if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
             println!("Error {:?}", why);
         }

@@ -1,23 +1,23 @@
-use serde_json::Value;
 use serde_json::from_str;
+use serde_json::Value;
 
-use phf::{Map, phf_map};
+use phf::{phf_map, Map};
 
+use reqwest::Client;
 use std::string::ToString;
-use reqwest::{Client};
 
-use serenity::framework::standard::*;
 use serenity::all::{CreateMessage, Message, Timestamp};
-use serenity::prelude::*;
 use serenity::async_trait;
 use serenity::builder::CreateEmbed;
+use serenity::framework::standard::*;
+use serenity::prelude::*;
 
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
-use crate::DnD::{Convert};
+use crate::DnD::Convert;
 use crate::DnD::Schemas::APIReference;
+use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
 #[derive(Clone, Debug)]
-enum LANGUAGE_TYPE{
+enum LANGUAGE_TYPE {
     Standard,
     Exotic,
     None,
@@ -25,72 +25,87 @@ enum LANGUAGE_TYPE{
 
 const LANGUAGE_URL: &str = "/api/languages/";
 
+pub const LANGUAGE: &[&str] = &[
+    "abyssal",
+    "celestial",
+    "common",
+    "deep-speech",
+    "draconic",
+    "dwarvish",
+    "elvish",
+    "giant",
+    "gnomish",
+    "goblin",
+    "halfling",
+    "infernal",
+    "orc",
+    "primordial",
+    "sylvan",
+    "undercommon",
+];
 
-pub const LANGUAGE: &[&str] = &["abyssal", "celestial", "common", "deep-speech",
-    "draconic", "dwarvish", "elvish", "giant", "gnomish", "goblin", "halfling",
-    "infernal", "orc", "primordial", "sylvan", "undercommon"];
-
-static HASH_LANGUAGE:Map<&str, LANGUAGE_TYPE> = phf_map! {
+static HASH_LANGUAGE: Map<&str, LANGUAGE_TYPE> = phf_map! {
     "Standard" => LANGUAGE_TYPE::Standard,
     "Exotic" => LANGUAGE_TYPE::Exotic,
     "" => LANGUAGE_TYPE::None,
 };
-pub struct Language{
-    pub reference:APIReference,
-    pub desc:String,
-    pub language_type:LANGUAGE_TYPE,
-    pub script:String,
-    pub typical_speaker:Vec<String>,
+pub struct Language {
+    pub reference: APIReference,
+    pub desc: String,
+    pub language_type: LANGUAGE_TYPE,
+    pub script: String,
+    pub typical_speaker: Vec<String>,
 }
-impl Language{
-    fn new() -> Self{
-        Language{
-            reference:APIReference::new(),
-            desc:"".to_string(),
-            language_type:LANGUAGE_TYPE::Standard,
-            script:"".to_string(),
-            typical_speaker:vec![],
+impl Language {
+    fn new() -> Self {
+        Language {
+            reference: APIReference::new(),
+            desc: "".to_string(),
+            language_type: LANGUAGE_TYPE::Standard,
+            script: "".to_string(),
+            typical_speaker: vec![],
         }
     }
 }
 
 #[async_trait]
-impl Convert for Language{
+impl Convert for Language {
     async fn from_value(&mut self, json: Value) {
-        match json.get("index"){
+        match json.get("index") {
             Some(T) => {
                 self.reference.index = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("name"){
+        match json.get("name") {
             Some(T) => {
                 self.reference.name = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("url"){
+        match json.get("url") {
             Some(T) => {
                 self.reference.url = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
-        match json.get("type"){
+        match json.get("type") {
             Some(T) => {
                 self.language_type = HASH_LANGUAGE.get(T.as_str().unwrap()).cloned().unwrap();
             }
             None => print!("?"),
         }
-        match json.get("typical_speakers"){
+        match json.get("typical_speakers") {
             Some(T) => {
                 let speakers_array = T.as_array().unwrap();
-                for speaker in speakers_array{
-                    self.typical_speaker.push(speaker.as_str().unwrap().to_string())
+                for speaker in speakers_array {
+                    self.typical_speaker
+                        .push(speaker.as_str().unwrap().to_string())
                 }
             }
             None => print!("?"),
         }
-        match json.get("script"){
+        match json.get("script") {
             Some(T) => {
                 self.script = T.as_str().unwrap().to_string();
             }
@@ -99,11 +114,20 @@ impl Convert for Language{
     }
 }
 
-pub async fn send_language_response(ctx: &Context, msg: &Message, lg_type:String) -> CommandResult{
-    if lg_type != "all".to_string()
-    {
+pub async fn send_language_response(
+    ctx: &Context,
+    msg: &Message,
+    lg_type: String,
+) -> CommandResult {
+    if lg_type != "all".to_string() {
         let client = Client::new();
-        let res = client.get(format!("{}{}{}", API_SERVER, LANGUAGE_URL, lg_type.to_string()))
+        let res = client
+            .get(format!(
+                "{}{}{}",
+                API_SERVER,
+                LANGUAGE_URL,
+                lg_type.to_string()
+            ))
             .send()
             .await
             .expect("fail to get to link")
@@ -121,40 +145,45 @@ pub async fn send_language_response(ctx: &Context, msg: &Message, lg_type:String
 
         let mut embed = CreateEmbed::new()
             .title(format!("{}", a.reference.name))
-            .fields(vec![("Type", format!("{:?}", a.language_type), true),
-                         ("Script",
-                          (|| -> String { if a.script == "" { return "None".to_string(); } else { return a.script; } })(),
-                          true)])
+            .fields(vec![
+                ("Type", format!("{:?}", a.language_type), true),
+                (
+                    "Script",
+                    (|| -> String {
+                        if a.script == "" {
+                            return "None".to_string();
+                        } else {
+                            return a.script;
+                        }
+                    })(),
+                    true,
+                ),
+            ])
             .field("Typical Speakers\n", speakers, false);
         if a.reference.url != "" {
-            embed = embed.clone().url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            embed = embed
+                .clone()
+                .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
         }
         // Add a timestamp for the current time
         // This also accepts a rfc3339 Timestamp
         embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new()
-            .content("test!")
-            .embed(embed);
+        let builder = CreateMessage::new().content("test!").embed(embed);
         if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
             println!("Error {:?}", why);
         }
-    }
-    else
-    {
-        let mut embed = CreateEmbed::new()
-            .title("**All available Languages**");
-        for i in &RESOURCES_LIST["languages"].results
-        {
-            embed = embed.clone().field(format!("{}", i.name), format!("{}", i.index), true);
+    } else {
+        let mut embed = CreateEmbed::new().title("**All available Languages**");
+        for i in &RESOURCES_LIST["languages"].results {
+            embed = embed
+                .clone()
+                .field(format!("{}", i.name), format!("{}", i.index), true);
         }
         embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new()
-            .content(lg_type)
-            .embed(embed);
+        let builder = CreateMessage::new().content(lg_type).embed(embed);
         if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
             println!("Error {:?}", why);
         }
     }
     Ok(())
 }
-

@@ -1,35 +1,34 @@
-use async_recursion::async_recursion;
 use crate::DnD::Schemas::*;
+use async_recursion::async_recursion;
 use serde_json::Map;
-
 
 impl Choice {
     #[async_recursion]
-    pub async fn parse(&mut self, json:&serde_json::Value){
+    pub async fn parse(&mut self, json: &serde_json::Value) {
         //get description of the choice that players are about to make
-        match json.get("desc"){
+        match json.get("desc") {
             Some(T) => {
                 self.desc = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
         //get how many choices players can make
-        match json.get("choose"){
+        match json.get("choose") {
             Some(T) => {
                 self.choose = T.as_i64().unwrap();
-            },
+            }
             None => print!("?"),
         }
         //get the type of choices
-        match json.get("type"){
+        match json.get("type") {
             Some(T) => {
                 self.choice_type = T.as_str().unwrap().to_string();
-            },
+            }
             None => print!("?"),
         }
         //get options to choose from
-        let mut from: &Map<String,serde_json::Value> = &Map::new();
-        match json.get("from"){
+        let mut from: &Map<String, serde_json::Value> = &Map::new();
+        match json.get("from") {
             Some(T) => {
                 from = T.as_object().unwrap();
             }
@@ -37,27 +36,26 @@ impl Choice {
         }
         //the temporary option set
         let mut _option_set: OptionSet = OptionSet::new();
-        if Some(from["option_set_type"].as_str().unwrap()).is_some()
-        {
+        if Some(from["option_set_type"].as_str().unwrap()).is_some() {
             //get the type of this option set
             _option_set.option_set_type = from["option_set_type"].as_str().unwrap().to_string();
             //switch the type the the appropriate case. We have an array of options,
             // a category of equipment and a resource list
-            match from["option_set_type"].as_str().unwrap(){
+            match from["option_set_type"].as_str().unwrap() {
                 // array of options case
                 "options_array" => {
                     //get the array from API as an array of Value
                     let array = from["options"].as_array().unwrap();
                     //iterate through the array
-                    for a in array{
+                    for a in array {
                         //get the option, turn it into an object then switch object_type
                         // to get appropriate of Option
-                        let mut _option:Option = Option::new();
+                        let mut _option: Option = Option::new();
                         let a_object = a.as_object().unwrap(); //an object in the array
-                        //parse in the object type
+                                                               //parse in the object type
                         _option.option_type = a_object["option_type"].as_str().unwrap().to_string();
                         //get object
-                        match &*_option.option_type{
+                        match &*_option.option_type {
                             //process if the option type is String
                             "string" => {
                                 _option.string = a_object["string"].as_str().unwrap().to_string();
@@ -73,8 +71,10 @@ impl Choice {
                             //process if the option type is score prerequisite
                             "score_prerequisite" => {
                                 let mut score_pre = ScorePrerequisite::new();
-                                score_pre.ability_score = APIReference::parse(&a_object["ability_score"]);
-                                score_pre.minimum_score = a_object["minimum_score"].as_i64().unwrap();
+                                score_pre.ability_score =
+                                    APIReference::parse(&a_object["ability_score"]);
+                                score_pre.minimum_score =
+                                    a_object["minimum_score"].as_i64().unwrap();
                                 _option.score_prerequisite = score_pre;
                             }
                             //process if teh option type is countedRef
@@ -99,13 +99,17 @@ impl Choice {
                 //equipment category case
                 "equipment_category" => {
                     let _equip_object = from["equipment_category"].as_object().unwrap(); //api information
-                    _option_set.equipment_category.name = _equip_object["name"].as_str().unwrap().to_string();
-                    _option_set.equipment_category.index = _equip_object["index"].as_str().unwrap().to_string();
-                    _option_set.equipment_category.url = _equip_object["url"].as_str().unwrap().to_string();
+                    _option_set.equipment_category.name =
+                        _equip_object["name"].as_str().unwrap().to_string();
+                    _option_set.equipment_category.index =
+                        _equip_object["index"].as_str().unwrap().to_string();
+                    _option_set.equipment_category.url =
+                        _equip_object["url"].as_str().unwrap().to_string();
                 }
                 //resource list case
                 "resource_list" => {
-                    _option_set.resource_list_url = from["resource_list_url"].as_str().unwrap().to_string();
+                    _option_set.resource_list_url =
+                        from["resource_list_url"].as_str().unwrap().to_string();
                 }
                 _ => print!("?"),
             }
@@ -114,53 +118,43 @@ impl Choice {
     }
 
     #[async_recursion]
-    pub async fn display(&self, level: i64) -> String{
+    pub async fn display(&self, level: i64) -> String {
         let mut bullet = "";
-        if level%2 == 0{
+        if level % 2 == 0 {
             bullet = "-";
-        }
-        else{
+        } else {
             bullet = "*";
         }
         let mut res: String = "".to_string();
-        if self.desc != "".to_string(){
+        if self.desc != *"" {
             if self.choose != -1 {
                 res += &*format!("**{} ({} choice(s))**", self.desc, self.choose);
-            }
-            else{
+            } else {
                 res += &*format!("**{}**", self.desc);
             }
-            if self.choice_type != "".to_string(){
+            if self.choice_type != *"" {
                 res += &*format!(" **({})**\n", self.choice_type)
-            }
-            else{
+            } else {
                 res += "\n";
             }
         }
-        if level == 0
-        {
-            for _ in [0..level - 1]
-            {
-                res += " ";
-            }
-        }
+
+
         match &*self.from.option_set_type {
             "options_array" => {
-                for option in &self.from.options
-                {
-                    if level != 0
-                    {
-                        for _ in [0..level - 1]
-                        {
+                for option in &self.from.options {
+                    if level != 0 {
+                        for _ in 0..level {
                             res += " ";
                         }
                     }
                     match &*option.option_type {
                         "string" => {
-                            res += &*format!("{} *{}*\n", bullet,  option.string);
+                            res += &*format!("{} *{}*\n", bullet, option.string);
                         }
                         "ideal" => {
-                            let mut string_ideal: String = format!("{} *{}* (", bullet, option.ideal.desc);
+                            let mut string_ideal: String =
+                                format!("{} *{}* (", bullet, option.ideal.desc);
                             for alignment in &option.ideal.alignments {
                                 string_ideal += &*format!("{} / ", alignment.name);
                             }
@@ -171,10 +165,16 @@ impl Choice {
                             res += &*format!("{} *{}*\n", bullet, option.reference.name);
                         }
                         "counted_reference" => {
-                            res += &*format!("{} *{} ({})*\n", bullet, option.counted_reference.of.name, option.counted_reference.count);
+                            res += &*format!(
+                                "{} *{} ({})*\n",
+                                bullet,
+                                option.counted_reference.of.name,
+                                option.counted_reference.count
+                            );
                         }
                         "choice" => {
-                            res += &*format!("{} {}\n", bullet, option.choice.display(level + 1).await)
+                            res +=
+                                &*format!("{} {}", bullet, option.choice.display(level + 1).await)
                         }
                         "" => {}
                         _ => {}
@@ -182,27 +182,24 @@ impl Choice {
                 }
             }
             "equipment_category" => {
-                if level != 0
-                {
-                    for _ in [0..level - 1]
-                    {
+                if level != 0 {
+                    for _ in 0..level {
                         res += " ";
                     }
                 }
-                res += &*format!("- *{}*\n", self.from.equipment_category.name);
+                res += &*format!("{} *{}*\n",bullet, self.from.equipment_category.name);
             }
             "resource_list" => {
-                if level != 0
-                {
-                    for _ in [0..level - 1]
-                    {
+                if level != 0 {
+                    for _ in 0..level {
                         res += " ";
                     }
                 }
-                res += &*format!("- *{}*\n", self.from.resource_list_url);
+                res += &*format!("{} *{}*\n",bullet, self.from.resource_list_url);
             }
             _ => {}
         }
+
         res
     }
 }

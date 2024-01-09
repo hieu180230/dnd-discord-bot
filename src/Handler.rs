@@ -1,15 +1,18 @@
+use crate::{Cat, HELP_MESSAGE};
+use std::error;
 use std::marker::Send;
 use std::sync::Arc;
-use std::{error};
-use crate::{HELP_MESSAGE, Cat};
 
-use std::time::Duration;
 use serenity::all::CreateEmbed;
+use std::time::Duration;
 
 use serenity::async_trait;
-use serenity::builder::{CreateButton, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption};
+use serenity::builder::{
+    CreateButton, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage,
+    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
+};
 
-use serenity::framework::standard::{Args, CommandResult, macros};
+use serenity::framework::standard::{macros, Args, CommandResult};
 use serenity::futures::StreamExt;
 use serenity::gateway::ShardManager;
 
@@ -27,18 +30,18 @@ impl TypeMapKey for ShardManagerContainer {
 
 //command building start here
 #[macros::command]
-async fn help(ctx: &Context, msg: &Message) -> CommandResult{
+async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id.say(&ctx.http, HELP_MESSAGE).await?;
     Ok(())
 }
 #[macros::command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult{
-    let channel = match msg.channel_id.to_channel(&ctx).await{
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+    let channel = match msg.channel_id.to_channel(&ctx).await {
         Ok(channel) => channel,
         Err(why) => {
             println!("Error getting channel: {:?}", why);
             return Err(Box::new(why) as Box<dyn error::Error + Send + Sync>);
-        },
+        }
     };
     let content = MessageBuilder::new()
         .push("User ")
@@ -46,44 +49,52 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult{
         .push(" ping the channel ")
         .mention(&channel)
         .build();
-    let resp = CreateMessage::new()
-        .content(content)
-        .select_menu(CreateSelectMenu::new("custom_id",
-                                           CreateSelectMenuKind::String {
-                                               options:vec![CreateSelectMenuOption::new("label1", "value1"),
-                                               CreateSelectMenuOption::new("label2", "value2"),]})
-            .placeholder("holder"));
-    if let Err(why) = msg.channel_id.send_message(&ctx.http, resp).await{
-        println!("Error sending ping msg: {:?}",why);
+    let resp = CreateMessage::new().content(content).select_menu(
+        CreateSelectMenu::new(
+            "custom_id",
+            CreateSelectMenuKind::String {
+                options: vec![
+                    CreateSelectMenuOption::new("label1", "value1"),
+                    CreateSelectMenuOption::new("label2", "value2"),
+                ],
+            },
+        )
+        .placeholder("holder"),
+    );
+    if let Err(why) = msg.channel_id.send_message(&ctx.http, resp).await {
+        println!("Error sending ping msg: {:?}", why);
     }
     return Ok(());
 }
 #[macros::command]
-async fn latency(ctx: &Context, msg: &Message) -> CommandResult{
+async fn latency(ctx: &Context, msg: &Message) -> CommandResult {
     let data = ctx.data.read().await;
 
-    let shardmanager = match data.get::<ShardManagerContainer>(){
+    let shardmanager = match data.get::<ShardManagerContainer>() {
         Some(v) => v,
-        None =>{
+        None => {
             msg.reply(ctx, "problem getting shard manager")
-                .await.expect("problem sending error message");
+                .await
+                .expect("problem sending error message");
             return Ok(());
-        },
+        }
     };
 
     let runners = shardmanager.runners.lock().await;
 
-    let runner = match runners.get(&ctx.shard_id){
+    let runner = match runners.get(&ctx.shard_id) {
         Some(runner) => runner,
         None => {
             msg.reply(&ctx, "No shard found")
-                .await.expect("problem sending error message");
+                .await
+                .expect("problem sending error message");
             return Ok(());
         }
     };
 
     msg.reply(&ctx, &format!("Latency: {:?}", runner.latency.unwrap()))
-        .await.expect("fail to send latency");
+        .await
+        .expect("fail to send latency");
     Ok(())
 }
 #[macros::group]
@@ -92,7 +103,9 @@ struct Manager;
 
 #[macros::command]
 async fn some_long_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id.say(&ctx.http, &format!("Arguments: {:?}", args.rest())).await?;
+    msg.channel_id
+        .say(&ctx.http, &format!("Arguments: {:?}", args.rest()))
+        .await?;
 
     Ok(())
 }
@@ -115,21 +128,27 @@ impl EventHandler for Handler {
             .channel_id
             .send_message(
                 &ctx,
-                CreateMessage::new().content("Please select your favorite animal").select_menu(
-                    CreateSelectMenu::new("animal_select", CreateSelectMenuKind::String {
-                        options: vec![
-                            CreateSelectMenuOption::new("🐈 meow", "Cat"),
-                            CreateSelectMenuOption::new("🐕 woof", "Dog"),
-                            CreateSelectMenuOption::new("🐎 neigh", "Horse"),
-                            CreateSelectMenuOption::new("🦙 hoooooooonk", "Alpaca"),
-                            CreateSelectMenuOption::new("🦀 crab rave", "Ferris"),
-                        ],
-                    })
+                CreateMessage::new()
+                    .content("Please select your favorite animal")
+                    .select_menu(
+                        CreateSelectMenu::new(
+                            "animal_select",
+                            CreateSelectMenuKind::String {
+                                options: vec![
+                                    CreateSelectMenuOption::new("🐈 meow", "Cat"),
+                                    CreateSelectMenuOption::new("🐕 woof", "Dog"),
+                                    CreateSelectMenuOption::new("🐎 neigh", "Horse"),
+                                    CreateSelectMenuOption::new("🦙 hoooooooonk", "Alpaca"),
+                                    CreateSelectMenuOption::new("🦀 crab rave", "Ferris"),
+                                ],
+                            },
+                        )
                         .custom_id("animal_select")
                         .placeholder("No animal selected"),
-                ),
+                    ),
             )
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Wait for the user to make a selection
         // This uses a collector to wait for an incoming event without needing to listen for it
@@ -143,15 +162,13 @@ impl EventHandler for Handler {
             None => {
                 m.reply(&ctx, "Timed out").await.unwrap();
                 return;
-            },
+            }
         };
 
         // data.values contains the selected value from each select menus. We only have one menu,
         // so we retrieve the first
         let animal = match &interaction.data.kind {
-            ComponentInteractionDataKind::StringSelect {
-                values,
-            } => &values[0],
+            ComponentInteractionDataKind::StringSelect { values } => &values[0],
             _ => panic!("unexpected interaction data kind"),
         };
 
@@ -182,8 +199,10 @@ impl EventHandler for Handler {
             .unwrap();
 
         // Wait for multiple interactions
-        let mut interaction_stream =
-            m.await_component_interaction(&ctx.shard).timeout(Duration::from_secs(60 * 3)).stream();
+        let mut interaction_stream = m
+            .await_component_interaction(&ctx.shard)
+            .timeout(Duration::from_secs(60 * 3))
+            .stream();
 
         while let Some(interaction) = interaction_stream.next().await {
             let sound = &interaction.data.custom_id;
@@ -210,11 +229,15 @@ impl EventHandler for Handler {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
-            println!("Received command interaction: {:?}",command.data.name);
+            println!("Received command interaction: {:?}", command.data.name);
 
             let content = match command.data.name.as_str() {
                 "cat" => Some(Cat::run(&ctx, &command.data.options(), &command).await),
-                _ => Some(CreateEmbed::new().title("not implemented :(".to_string()).description("???")),
+                _ => Some(
+                    CreateEmbed::new()
+                        .title("not implemented :(".to_string())
+                        .description("???"),
+                ),
             };
 
             if let Some(content) = content {
@@ -230,12 +253,10 @@ impl EventHandler for Handler {
         println!("{} is ready!", ready.user.name);
 
         //register slash command
-        let commands =
-            Command::create_global_command(&ctx.http, Cat::register())
-                .await;
-        println!("I now have the following guild slash commands: {:?}", commands.unwrap().name);
-
+        let commands = Command::create_global_command(&ctx.http, Cat::register()).await;
+        println!(
+            "I now have the following guild slash commands: {:?}",
+            commands.unwrap().name
+        );
     }
 }
-
-
