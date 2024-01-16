@@ -5,9 +5,10 @@ use std::collections::HashMap;
 use serde::Deserialize;
 use serde_json::{from_str, Map, Value};
 use serenity::all::{CreateInteractionResponseMessage, Timestamp};
+use serenity::async_trait;
 use serenity::builder::{CreateButton, CreateEmbed, CreateMessage};
 
-use crate::DnD::API_SERVER;
+use crate::DnD::{API_SERVER, Convert};
 
 //this store the API reference of an item
 #[derive(Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
@@ -46,6 +47,14 @@ impl APIReference {
 impl Default for APIReference {
     fn default() -> Self {
         Self::new()
+    }
+}
+#[async_trait]
+impl Convert for APIReference {
+    async fn from_value(&mut self, json: Value) {
+        self.index = json["index"].as_str().unwrap().to_string();
+        self.name = json["name"].as_str().unwrap().to_string();
+        self.url = json["url"].as_str().unwrap().to_string();
     }
 }
 

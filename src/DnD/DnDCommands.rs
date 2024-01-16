@@ -8,8 +8,8 @@ use serenity::all::standard::macros;
 use serenity::framework::standard::*;
 
 use crate::DnD::Class::ClassInfo::*;
-
-use crate::DnD::Class::ClassResourceList::send_class_resource_response;
+use crate::DnD::Class::ClassResourceList::*;
+use crate::DnD::Class::ClassLevel::*;
 use crate::DnD::RESOURCES_LIST;
 use serenity::all::Message;
 use serenity::prelude::*;
@@ -241,6 +241,32 @@ async fn look_up_class(ctx: &Context, msg: &Message, args: Args) -> CommandResul
                 )
                 .await
                 .expect("TODO: panic message"),
+                "levels" => {
+                    if alias.advance().current().is_none() {
+                        send_class_level_response(
+                            ctx,
+                            msg,
+                            i.index.as_str(), "", "", "").await.expect("TODO: panic message");
+                    } else {
+                        if alias.current().unwrap_or_default().to_string().parse::<i64>().is_ok() {
+                            let level = format!("/{}", alias.current().unwrap_or_default());
+                            let mut option = "".to_string();
+                            if alias.advance().current().is_some() {
+                                option = format!("/{}", alias.current().unwrap_or_default());
+                            }
+                            send_class_level_response(
+                                ctx,
+                                msg,
+                                i.index.as_str(), "", &level, &option).await.expect("TODO: panic message");
+                            return Ok(());
+                        }
+                        let subclass = format!("?subclass={}", alias.current().unwrap_or_default());
+                        send_class_level_response(
+                            ctx,
+                            msg,i.index.as_str(), &subclass, "", "").await.expect("TODO: panic message");
+                        return Ok(());
+                    }
+                }
                 _ => {}
             }
             return Ok(());

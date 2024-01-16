@@ -1,5 +1,4 @@
 use reqwest::Client;
-use std::collections::HashMap;
 use std::string::ToString;
 use std::time::Duration;
 
@@ -17,8 +16,8 @@ use serde_json::de::Read;
 use serde_json::{from_str, Value};
 
 use crate::DnD::Convert;
-use crate::DnD::Schemas::{APIReference, APIReferenceList, Choice};
-use crate::DnD::{API_SERVER, RESOURCES_LIST};
+use crate::DnD::Schemas::{APIReference, APIReferenceList};
+use crate::DnD::{API_SERVER};
 
 #[async_trait]
 impl Convert for APIReferenceList {
