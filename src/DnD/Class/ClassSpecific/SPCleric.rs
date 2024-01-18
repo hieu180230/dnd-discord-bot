@@ -16,6 +16,10 @@ impl SPCleric {
 #[async_trait]
 impl SPConvert for SPCleric {
     async fn from_value(&mut self, json: serde_json::Value) {
-
+        self.channel_divinity_charge = json["channel_divinity_charges"].as_i64().unwrap() as i32;
+        self.destroy_undead_cr = json["destroy_undead_cr"].as_i64().unwrap() as i32;
+    }
+    fn display(&self) -> String {
+        format!("Channel Divinity Charges: {}\nDestroy Undead CR: {}", self.channel_divinity_charge, self.destroy_undead_cr)
     }
 }

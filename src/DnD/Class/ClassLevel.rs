@@ -4,7 +4,7 @@ use std::hash::Hash;
 use std::string::ToString;
 use std::time::Duration;
 
-use serenity::all::{ComponentInteractionDataKind, CreateMessage, Message, Timestamp};
+use serenity::all::{ComponentInteractionDataKind, CreateButton, CreateMessage, Message, Timestamp};
 use serenity::async_trait;
 use serenity::builder::{
     CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu,
@@ -77,7 +77,7 @@ impl Convert for ClassLevel {
             }
             None => {print!("No prof_bonus found")}
         }
-        match json.get("feature") {
+        match json.get("features") {
             Some(T) => {
                 for feature in T.as_array().unwrap() {
                     let mut temp = APIReference::new();
@@ -129,6 +129,33 @@ impl Convert for ClassLevel {
     }
 }
 
+fn paginate_class_level(class_levels: &Vec<ClassLevel>, page:i32) -> CreateEmbed {
+    // turn attributes into string for display
+
+    let mut feature = "".to_string();
+    let class_specific = class_levels[page as usize].class_specific.display();
+    for i in &class_levels[page as usize].feature {
+        feature += &*format!("- *{}*\n", i.name);
+    }
+    if feature.is_empty() {
+        feature = "None".to_string();
+    }
+
+    //embed information
+    let mut embed = CreateEmbed::new().title(format!("All level resources for {}", class_levels[page as usize].class.name).to_string())
+        .description(format!("Level {}\nAbility Score Bonus {}\nProficiency Bonus {}", class_levels[page as usize].level, class_levels[page as usize].ability_score_bonus, class_levels[page as usize].prof_bonus))
+        .field("Feature", feature, false)
+        .field("Class Specific", class_specific, false);
+    if class_levels[page as usize].subclass_check {
+        embed = embed.field("Subclass", &class_levels[page as usize].subclass.name, false);
+    }
+    // Add a timestamp for the current time
+    // This also accepts a rfc3339 Timestamp
+    embed = embed.clone().timestamp(Timestamp::now());
+
+    embed
+}
+
 pub async fn send_class_level_response(ctx: &Context, msg: &Message, _class: &str, _subclass: &str, _level: &str, _option: &str) -> CommandResult {
     let client = Client::new();
     println!("{}/api/classes/{}/levels{}{}{}", API_SERVER, _class, _subclass, _level, _option);
@@ -170,16 +197,60 @@ pub async fn send_class_level_response(ctx: &Context, msg: &Message, _class: &st
         class_levels.push(temp);
     }
 
-    let mut embed = CreateEmbed::new().title(format!("Class level: {}", _class).to_string());
-    // Add a timestamp for the current time
-    // This also accepts a rfc3339 Timestamp
-    embed = embed.clone().timestamp(Timestamp::now());
+    let mut page: i32 = 0;
+    let mut embed = paginate_class_level(&class_levels, page);
+    let message = CreateMessage::new()
+        .content(format!("All level resources for {}", class_levels[page as usize].class.name).to_string())
+        .embed(embed.clone())
+        .button(CreateButton::new("first").label("<<"))
+        .button(CreateButton::new("prev").label("<"))
+        .button(CreateButton::new("next").label(">"))
+        .button(CreateButton::new("last").label(">>"));
 
-    let builder = CreateMessage::new()
-        .content(format!("Class level: {}", _class))
-        .embed(embed);
-    if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-        println!("Error {:?}", why);
+    let m = msg
+        .channel_id
+        .send_message(&ctx.http, message)
+        .await
+        .unwrap();
+
+    let mut interaction = m
+        .await_component_interaction(&ctx.shard)
+        .stream();
+    while let Some(user_interaction) = interaction.next().await {
+        let option = &user_interaction.data.custom_id;
+        match option.as_str() {
+            "first" => {
+                page = 0;
+                embed = paginate_class_level(&class_levels, page);
+            }
+            "prev" => {
+                page = page.saturating_sub(1);
+                embed = paginate_class_level(&class_levels, page);
+            }
+            "next" => {
+                if page < ((class_levels.len() - 1) as i32) {
+                    page += 1;
+                }
+                embed = paginate_class_level(&class_levels, page);
+            }
+            "last" => {
+                page = (class_levels.len() - 1) as i32;
+                embed = paginate_class_level(&class_levels, page);
+            }
+            _ => {}
+        }
+
+        user_interaction
+            .create_response(
+                &ctx,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::default()
+                        .ephemeral(false)
+                        .embed(embed.clone()),
+                ),
+            )
+            .await
+            .unwrap();
     }
 
     Ok(())

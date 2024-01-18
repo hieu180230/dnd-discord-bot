@@ -14,6 +14,9 @@ impl SPWizard {
 #[async_trait]
 impl SPConvert for SPWizard {
     async fn from_value(&mut self, json: serde_json::Value) {
-
+        self.arcane_recover_levels = json["arcane_recover_levels"].as_i64().unwrap() as i32;
+    }
+    fn display(&self) -> String {
+        format!("Arcane Recover Levels: {}", self.arcane_recover_levels)
     }
 }

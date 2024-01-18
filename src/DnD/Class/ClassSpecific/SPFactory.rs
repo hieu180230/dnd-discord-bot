@@ -4,6 +4,7 @@ use crate::DnD::Class::ClassSpecific::*;
 #[async_trait]
 pub trait SPConvert {
     async fn from_value(&mut self, json: serde_json::Value);
+    fn display(&self) -> String;
 }
 
 

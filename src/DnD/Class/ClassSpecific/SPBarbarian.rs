@@ -22,4 +22,7 @@ impl SPConvert for SPBarbarian {
         self.rage_damage_bonus = json["rage_damage_bonus"].as_i64().unwrap() as i32;
         self.brutal_crit_dice = json["brutal_critical_dice"].as_i64().unwrap() as i32;
     }
+    fn display(&self) -> String {
+        format!("Rage Count: {}\nRage Damage Bonus: {}\nBrutal Critical Dice: {}", self.rage_count, self.rage_damage_bonus, self.brutal_crit_dice)
+    }
 }
