@@ -4,7 +4,9 @@ use std::hash::Hash;
 use std::string::ToString;
 use std::time::Duration;
 
-use serenity::all::{ComponentInteractionDataKind, CreateButton, CreateMessage, Message, Timestamp};
+use serenity::all::{
+    ComponentInteractionDataKind, CreateButton, CreateMessage, Message, Timestamp,
+};
 use serenity::async_trait;
 use serenity::builder::{
     CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu,
@@ -17,12 +19,12 @@ use serenity::prelude::*;
 use serde_json::de::Read;
 use serde_json::{from_str, Value};
 
-use crate::DnD::Convert;
-use crate::DnD::Schemas::{APIReference, APIReferenceList};
-use crate::DnD::{API_SERVER};
 use crate::DnD::Class::ClassInfo::ClassInfo;
-use crate::DnD::Class::ClassSpecific::*;
 use crate::DnD::Class::ClassSpecific::SPFactory::{ClassType, SPConvert};
+use crate::DnD::Class::ClassSpecific::*;
+use crate::DnD::Schemas::{APIReference, APIReferenceList};
+use crate::DnD::API_SERVER;
+use crate::DnD::{Convert, SendResponse};
 
 //This is the main struct for class level
 pub struct ClassLevel {
@@ -63,19 +65,25 @@ impl Convert for ClassLevel {
             Some(T) => {
                 self.level = T.as_i64().unwrap() as i32;
             }
-            None => {print!("No level found")}
+            None => {
+                print!("No level found")
+            }
         }
         match json.get("ability_score_bonuses") {
             Some(T) => {
                 self.ability_score_bonus = T.as_i64().unwrap() as i32;
             }
-            None => {print!("No ability_score_bonus found")}
+            None => {
+                print!("No ability_score_bonus found")
+            }
         }
         match json.get("prof_bonus") {
             Some(T) => {
                 self.prof_bonus = T.as_i64().unwrap() as i32;
             }
-            None => {print!("No prof_bonus found")}
+            None => {
+                print!("No prof_bonus found")
+            }
         }
         match json.get("features") {
             Some(T) => {
@@ -85,51 +93,66 @@ impl Convert for ClassLevel {
                     self.feature.push(temp);
                 }
             }
-            None => {print!("No feature_choices found")}
+            None => {
+                print!("No feature_choices found")
+            }
         }
         match json.get("spellcasting") {
             Some(T) => {
                 for spellcasting in T.as_object().unwrap() {
-                    self.spellcasting.insert(spellcasting.0.to_string(), spellcasting.1.as_i64().unwrap());
+                    self.spellcasting
+                        .insert(spellcasting.0.to_string(), spellcasting.1.as_i64().unwrap());
                 }
             }
-            None => {print!("No spellcasting found")}
+            None => {
+                print!("No spellcasting found")
+            }
         }
         match json.get("class_specific") {
             Some(T) => {
                 self.class_specific.from_value(T.clone()).await;
             }
-            None => {print!("No class_specific found")}
+            None => {
+                print!("No class_specific found")
+            }
         }
         match json.get("index") {
             Some(T) => {
                 self.index = T.as_str().unwrap().to_string();
             }
-            None => {print!("No index found")}
+            None => {
+                print!("No index found")
+            }
         }
         match json.get("url") {
             Some(T) => {
                 self.url = T.as_str().unwrap().to_string();
             }
-            None => {print!("No url found")}
+            None => {
+                print!("No url found")
+            }
         }
         match json.get("class") {
             Some(T) => {
                 self.class.from_value(T.clone()).await;
             }
-            None => {print!("No class found")}
+            None => {
+                print!("No class found")
+            }
         }
         match json.get("subclass") {
             Some(T) => {
                 self.subclass_check = true;
                 self.subclass.from_value(T.clone()).await;
             }
-            None => {print!("No subclass found")}
+            None => {
+                print!("No subclass found")
+            }
         }
     }
 }
 
-fn paginate_class_level(class_levels: &Vec<ClassLevel>, page:i32) -> CreateEmbed {
+fn paginate_class_level(class_levels: &Vec<ClassLevel>, page: i32, title: String) -> CreateEmbed {
     // turn attributes into string for display
 
     let mut feature = "".to_string();
@@ -142,12 +165,22 @@ fn paginate_class_level(class_levels: &Vec<ClassLevel>, page:i32) -> CreateEmbed
     }
 
     //embed information
-    let mut embed = CreateEmbed::new().title(format!("All level resources for {}", class_levels[page as usize].class.name).to_string())
-        .description(format!("Level {}\nAbility Score Bonus {}\nProficiency Bonus {}", class_levels[page as usize].level, class_levels[page as usize].ability_score_bonus, class_levels[page as usize].prof_bonus))
+    let mut embed = CreateEmbed::new()
+        .title(title)
+        .description(format!(
+            "Level {}\nAbility Score Bonus {}\nProficiency Bonus {}",
+            class_levels[page as usize].level,
+            class_levels[page as usize].ability_score_bonus,
+            class_levels[page as usize].prof_bonus
+        ))
         .field("Feature", feature, false)
         .field("Class Specific", class_specific, false);
     if class_levels[page as usize].subclass_check {
-        embed = embed.field("Subclass", &class_levels[page as usize].subclass.name, false);
+        embed = embed.field(
+            "Subclass",
+            &class_levels[page as usize].subclass.name,
+            false,
+        );
     }
     // Add a timestamp for the current time
     // This also accepts a rfc3339 Timestamp
@@ -156,104 +189,160 @@ fn paginate_class_level(class_levels: &Vec<ClassLevel>, page:i32) -> CreateEmbed
     embed
 }
 
-pub async fn send_class_level_response(ctx: &Context, msg: &Message, _class: &str, _subclass: &str, _level: &str, _option: &str) -> CommandResult {
-    let client = Client::new();
-    println!("{}/api/classes/{}/levels{}{}{}", API_SERVER, _class, _subclass, _level, _option);
-    let res = client
-        .get(format!("{}/api/classes/{}/levels{}{}{}", API_SERVER, _class, _subclass, _level, _option))
-        .send()
-        .await
-        .expect("fail to get to link")
-        .text()
-        .await
-        .expect("fail to convert to json");
-    let json: serde_json::Value = from_str(&res).expect("what?");
-    let mut class_type = SPFactory::ClassType::Barbarian;
-    match _class {
-        "bard" => {class_type = SPFactory::ClassType::Bard;}
-        "cleric" => {class_type = SPFactory::ClassType::Cleric;}
-        "druid" => {class_type = SPFactory::ClassType::Druid;}
-        "fighter" => {class_type = SPFactory::ClassType::Fighter;}
-        "monk" => {class_type = SPFactory::ClassType::Monk;}
-        "paladin" => {class_type = SPFactory::ClassType::Paladin;}
-        "ranger" => {class_type = SPFactory::ClassType::Ranger;}
-        "rogue" => {class_type = SPFactory::ClassType::Rogue;}
-        "sorcerer" => {class_type = SPFactory::ClassType::Sorcerer;}
-        "warlock" => {class_type = SPFactory::ClassType::Warlock;}
-        "wizard" => {class_type = SPFactory::ClassType::Wizard;}
-        _ => {}
-    }
-    let mut class_levels : Vec<ClassLevel> = Vec::new();
-    if _level.is_empty() {
-        for class_level in json.as_array().unwrap() {
-            let mut temp = ClassLevel::new(&class_type);
-            temp.from_value(class_level.clone()).await;
-            class_levels.push(temp);
-        }
-    }
-    else {
-        let mut temp = ClassLevel::new(&class_type);
-        temp.from_value(json).await;
-        class_levels.push(temp);
-    }
-
-    let mut page: i32 = 0;
-    let mut embed = paginate_class_level(&class_levels, page);
-    let message = CreateMessage::new()
-        .content(format!("All level resources for {}", class_levels[page as usize].class.name).to_string())
-        .embed(embed.clone())
-        .button(CreateButton::new("first").label("<<"))
-        .button(CreateButton::new("prev").label("<"))
-        .button(CreateButton::new("next").label(">"))
-        .button(CreateButton::new("last").label(">>"));
-
-    let m = msg
-        .channel_id
-        .send_message(&ctx.http, message)
-        .await
-        .unwrap();
-
-    let mut interaction = m
-        .await_component_interaction(&ctx.shard)
-        .stream();
-    while let Some(user_interaction) = interaction.next().await {
-        let option = &user_interaction.data.custom_id;
-        match option.as_str() {
-            "first" => {
-                page = 0;
-                embed = paginate_class_level(&class_levels, page);
+#[async_trait]
+impl SendResponse for ClassLevel {
+    async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
+        let client = Client::new();
+        let res = client
+            .get(format!(
+                "{}/api/classes/{}/levels{}{}{}",
+                API_SERVER, _type[0], _type[1], _type[2], _type[3]
+            ))
+            .send()
+            .await
+            .expect("fail to get to link")
+            .text()
+            .await
+            .expect("fail to convert to json");
+        let json: serde_json::Value = from_str(&res).expect("what?");
+        let mut class_type = SPFactory::ClassType::Barbarian;
+        match _type[0] {
+            "bard" => {
+                class_type = SPFactory::ClassType::Bard;
             }
-            "prev" => {
-                page = page.saturating_sub(1);
-                embed = paginate_class_level(&class_levels, page);
+            "cleric" => {
+                class_type = SPFactory::ClassType::Cleric;
             }
-            "next" => {
-                if page < ((class_levels.len() - 1) as i32) {
-                    page += 1;
-                }
-                embed = paginate_class_level(&class_levels, page);
+            "druid" => {
+                class_type = SPFactory::ClassType::Druid;
             }
-            "last" => {
-                page = (class_levels.len() - 1) as i32;
-                embed = paginate_class_level(&class_levels, page);
+            "fighter" => {
+                class_type = SPFactory::ClassType::Fighter;
+            }
+            "monk" => {
+                class_type = SPFactory::ClassType::Monk;
+            }
+            "paladin" => {
+                class_type = SPFactory::ClassType::Paladin;
+            }
+            "ranger" => {
+                class_type = SPFactory::ClassType::Ranger;
+            }
+            "rogue" => {
+                class_type = SPFactory::ClassType::Rogue;
+            }
+            "sorcerer" => {
+                class_type = SPFactory::ClassType::Sorcerer;
+            }
+            "warlock" => {
+                class_type = SPFactory::ClassType::Warlock;
+            }
+            "wizard" => {
+                class_type = SPFactory::ClassType::Wizard;
             }
             _ => {}
         }
 
-        user_interaction
-            .create_response(
-                &ctx,
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::default()
-                        .ephemeral(false)
-                        .embed(embed.clone()),
-                ),
-            )
+        let mut specific_title = "".to_string();
+        let mut page: i32 = 0;
+        let mut class_levels: Vec<ClassLevel> = Vec::new();
+        if _type[2].is_empty() {
+            for class_level in json.as_array().unwrap() {
+                let mut temp = ClassLevel::new(&class_type);
+                temp.from_value(class_level.clone()).await;
+                class_levels.push(temp);
+            }
+            specific_title = format!(
+                "All level resources for {}",
+                class_levels[page as usize].class.name
+            );
+        } else {
+            let mut temp = ClassLevel::new(&class_type);
+            temp.from_value(json).await;
+            class_levels.push(temp);
+            specific_title = format!("Level {}", _type[2]);
+            match _type[3] {
+                "features" => {
+                    specific_title += &*format!(
+                        " Features resources for {}",
+                        class_levels[page as usize].class.name
+                    );
+                }
+                "spells" => {
+                    specific_title += &*format!(
+                        " Spells resources for {}",
+                        class_levels[page as usize].class.name
+                    );
+                }
+                "" => {
+                    specific_title +=
+                        &*format!(" resources for {}", class_levels[page as usize].class.name);
+                }
+                _ => {
+                    specific_title +=
+                        &*format!(" resources for {}", class_levels[page as usize].class.name);
+                }
+            }
+        }
+
+        let mut embed = paginate_class_level(&class_levels, page, specific_title.clone());
+        let mut message = CreateMessage::new()
+            .content(specific_title.clone())
+            .embed(embed.clone());
+        if !_type[2].is_empty() || !_type[3].is_empty() {
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, message).await {
+                println!("Error {:?}", why);
+            }
+            return Ok(())
+        }
+        message = message.button(CreateButton::new("first").label("<<"))
+            .button(CreateButton::new("prev").label("<"))
+            .button(CreateButton::new("next").label(">"))
+            .button(CreateButton::new("last").label(">>"));
+        let m = msg
+            .channel_id
+            .send_message(&ctx.http, message)
             .await
             .unwrap();
+
+        let mut interaction = m.await_component_interaction(&ctx.shard).stream();
+        while let Some(user_interaction) = interaction.next().await {
+            let option = &user_interaction.data.custom_id;
+            match option.as_str() {
+                "first" => {
+                    page = 0;
+                    embed = paginate_class_level(&class_levels, page, specific_title.clone());
+                }
+                "prev" => {
+                    page = page.saturating_sub(1);
+                    embed = paginate_class_level(&class_levels, page, specific_title.clone());
+                }
+                "next" => {
+                    if page < ((class_levels.len() - 1) as i32) {
+                        page += 1;
+                    }
+                    embed = paginate_class_level(&class_levels, page, specific_title.clone());
+                }
+                "last" => {
+                    page = (class_levels.len() - 1) as i32;
+                    embed = paginate_class_level(&class_levels, page, specific_title.clone());
+                }
+                _ => {}
+            }
+
+            user_interaction
+                .create_response(
+                    &ctx,
+                    CreateInteractionResponse::UpdateMessage(
+                        CreateInteractionResponseMessage::default()
+                            .ephemeral(false)
+                            .embed(embed.clone()),
+                    ),
+                )
+                .await
+                .unwrap();
+        }
+
+        Ok(())
     }
-
-    Ok(())
 }
-
-

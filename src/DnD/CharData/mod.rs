@@ -4,5 +4,5 @@ pub mod AbilityScore;
 pub mod Alignments;
 pub mod Background;
 pub mod Language;
+pub mod Proficiencies;
 pub mod Skills;
-pub mod proficiencies;

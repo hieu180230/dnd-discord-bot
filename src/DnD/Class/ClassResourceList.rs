@@ -15,9 +15,9 @@ use serenity::prelude::*;
 use serde_json::de::Read;
 use serde_json::{from_str, Value};
 
-use crate::DnD::Convert;
 use crate::DnD::Schemas::{APIReference, APIReferenceList};
-use crate::DnD::{API_SERVER};
+use crate::DnD::API_SERVER;
+use crate::DnD::{Convert, SendResponse};
 
 #[async_trait]
 impl Convert for APIReferenceList {
@@ -41,106 +41,105 @@ impl Convert for APIReferenceList {
     }
 }
 
-pub async fn send_class_resource_response(
-    ctx: &Context,
-    msg: &Message,
-    _type: Vec<String>,
-) -> CommandResult {
-    let API_Endpoint = format!("/api/classes/{}/{}", _type[0], _type[1]);
-    let client = Client::new();
-    let res = client
-        .get(format!("{}{}", API_SERVER, API_Endpoint))
-        .send()
-        .await
-        .expect("fail to get to link")
-        .text()
-        .await
-        .expect("fail to convert to json");
-    let json: serde_json::Value = from_str(&res).expect("what?");
-    let mut a = APIReferenceList::new();
-    a.from_value(json.clone()).await;
+#[async_trait]
+impl SendResponse for APIReferenceList {
+    async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
+        let API_Endpoint = format!("/api/classes/{}/{}", _type[0], _type[1]);
+        let client = Client::new();
+        let res = client
+            .get(format!("{}{}", API_SERVER, API_Endpoint))
+            .send()
+            .await
+            .expect("fail to get to link")
+            .text()
+            .await
+            .expect("fail to convert to json");
+        let json: serde_json::Value = from_str(&res).expect("what?");
+        let mut a = APIReferenceList::new();
+        a.from_value(json.clone()).await;
 
-    let (builder, display_data) = a.display(_type.clone()).await;
+        let (builder, display_data) = a.display(_type.clone()).await;
 
-    let m = msg
-        .channel_id
-        .send_message(&ctx.http, builder)
-        .await
-        .unwrap();
-
-    let mut interaction = m
-        .await_component_interaction(&ctx.shard)
-        .timeout(Duration::from_secs(200))
-        .stream();
-
-    let mut count = 0;
-    while let Some(user_interaction) = interaction.next().await {
-        let option = &user_interaction.data.custom_id;
-        let mut embed = CreateEmbed::new();
-        match option.as_str() {
-            "first" => {
-                println!("first");
-                count = 0;
-                for i in 0..display_data[count].len() {
-                    embed = embed.field(
-                        &*display_data[count][i].name,
-                        &*display_data[count][i].index,
-                        true,
-                    );
-                }
-            }
-            "prev" => {
-                println!("prev");
-                count = count.saturating_sub(1);
-                for i in 0..display_data[count].len() {
-                    embed = embed.field(
-                        &*display_data[count][i].name,
-                        &*display_data[count][i].index,
-                        true,
-                    );
-                }
-            }
-            "next" => {
-                println!("next");
-                if count < display_data.len() - 1 {
-                    count += 1;
-                }
-                for i in 0..display_data[count].len() {
-                    embed = embed.field(
-                        &*display_data[count][i].name,
-                        &*display_data[count][i].index,
-                        true,
-                    );
-                }
-            }
-            "last" => {
-                println!("last");
-                count = display_data.len() - 1;
-                for i in 0..display_data[count].len() {
-                    embed = embed.field(
-                        &*display_data[count][i].name,
-                        &*display_data[count][i].index,
-                        true,
-                    );
-                }
-            }
-            _ => {}
-        }
-        embed = embed.title(format!("{} of {} ({})", _type[1], _type[0], count + 1));
-        user_interaction
-            .create_response(
-                &ctx,
-                // This time we dont edit the message but reply to it
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::default()
-                        // Make the message hidden for other users by setting `ephemeral(true)`.
-                        .ephemeral(false)
-                        .content(format!("{} of {}", _type[1], _type[0]))
-                        .embed(embed.clone()),
-                ),
-            )
+        let m = msg
+            .channel_id
+            .send_message(&ctx.http, builder)
             .await
             .unwrap();
+
+        let mut interaction = m
+            .await_component_interaction(&ctx.shard)
+            .timeout(Duration::from_secs(200))
+            .stream();
+
+        let mut count = 0;
+        while let Some(user_interaction) = interaction.next().await {
+            let option = &user_interaction.data.custom_id;
+            let mut embed = CreateEmbed::new();
+            match option.as_str() {
+                "first" => {
+                    println!("first");
+                    count = 0;
+                    for i in 0..display_data[count].len() {
+                        embed = embed.field(
+                            &*display_data[count][i].name,
+                            &*display_data[count][i].index,
+                            true,
+                        );
+                    }
+                }
+                "prev" => {
+                    println!("prev");
+                    count = count.saturating_sub(1);
+                    for i in 0..display_data[count].len() {
+                        embed = embed.field(
+                            &*display_data[count][i].name,
+                            &*display_data[count][i].index,
+                            true,
+                        );
+                    }
+                }
+                "next" => {
+                    println!("next");
+                    if count < display_data.len() - 1 {
+                        count += 1;
+                    }
+                    for i in 0..display_data[count].len() {
+                        embed = embed.field(
+                            &*display_data[count][i].name,
+                            &*display_data[count][i].index,
+                            true,
+                        );
+                    }
+                }
+                "last" => {
+                    println!("last");
+                    count = display_data.len() - 1;
+                    for i in 0..display_data[count].len() {
+                        embed = embed.field(
+                            &*display_data[count][i].name,
+                            &*display_data[count][i].index,
+                            true,
+                        );
+                    }
+                }
+                _ => {}
+            }
+            embed = embed.title(format!("{} of {} ({})", _type[1], _type[0], count + 1));
+            user_interaction
+                .create_response(
+                    &ctx,
+                    // This time we dont edit the message but reply to it
+                    CreateInteractionResponse::UpdateMessage(
+                        CreateInteractionResponseMessage::default()
+                            // Make the message hidden for other users by setting `ephemeral(true)`.
+                            .ephemeral(false)
+                            .content(format!("{} of {}", _type[1], _type[0]))
+                            .embed(embed.clone()),
+                    ),
+                )
+                .await
+                .unwrap();
+        }
+        Ok(())
     }
-    Ok(())
 }

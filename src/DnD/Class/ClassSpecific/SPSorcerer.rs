@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 struct SpellSlot {
     spell_slot_level: i32,
@@ -34,8 +34,14 @@ impl SPConvert for SPSorcerer {
     fn display(&self) -> String {
         let mut spell_slots = String::new();
         for spell_slot in &self.creating_spell_slots {
-            spell_slots.push_str(&format!("- Spell Slot Level: {}\n- Sorcery Point Cost: {}\n", spell_slot.spell_slot_level, spell_slot.sorcery_point_cost));
+            spell_slots.push_str(&format!(
+                "- Spell Slot Level: {}\n- Sorcery Point Cost: {}\n",
+                spell_slot.spell_slot_level, spell_slot.sorcery_point_cost
+            ));
         }
-        format!("Sorcery Points: {}\nMetamagic Known: {}\nCreating Spell Slots:\n{}", self.sorcery_points, self.metamagic_known, spell_slots)
+        format!(
+            "Sorcery Points: {}\nMetamagic Known: {}\nCreating Spell Slots:\n{}",
+            self.sorcery_points, self.metamagic_known, spell_slots
+        )
     }
 }

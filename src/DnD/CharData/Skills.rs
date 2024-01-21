@@ -1,5 +1,5 @@
-use crate::DnD::Convert;
 use crate::DnD::Schemas::APIReference;
+use crate::DnD::{Convert, SendResponse};
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
 use reqwest::Client;
@@ -69,64 +69,62 @@ impl Convert for Skill {
     }
 }
 
-pub async fn send_skill_response(ctx: &Context, msg: &Message, prf_type: String) -> CommandResult {
-    if prf_type != "all".to_string() {
-        let client = Client::new();
-        let res = client
-            .get(format!(
-                "{}{}{}",
-                API_SERVER,
-                SKILL_URL,
-                prf_type.to_string()
-            ))
-            .send()
-            .await
-            .expect("fail to get to link")
-            .text()
-            .await
-            .expect("fail to convert to json");
-        let json: serde_json::Value = from_str(&res).expect("what?");
-        let mut a = Skill::new();
-        a.from_value(json.clone()).await;
+#[async_trait]
+impl SendResponse for Skill {
+    async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
+        if _type[0] != "all".to_string() {
+            let client = Client::new();
+            let res = client
+                .get(format!("{}{}{}", API_SERVER, SKILL_URL, _type[0]))
+                .send()
+                .await
+                .expect("fail to get to link")
+                .text()
+                .await
+                .expect("fail to convert to json");
+            let json: serde_json::Value = from_str(&res).expect("what?");
+            let mut a = Skill::new();
+            a.from_value(json.clone()).await;
 
-        let mut description: String = "".to_string();
-        for desc in &a.desc {
-            description += &*format!("*{}*\n", desc);
-        }
+            let mut description: String = "".to_string();
+            for desc in &a.desc {
+                description += &*format!("*{}*\n", desc);
+            }
 
-        let mut embed = CreateEmbed::new()
-            .title(format!("{}", a.reference.name))
-            .description(description)
-            .field(
-                format!("Ability Score ({})", a.ability_score.name),
-                format!("{}{}", API_SERVER, a.ability_score.url),
-                false,
-            );
+            let mut embed = CreateEmbed::new()
+                .title(format!("{}", a.reference.name))
+                .description(description)
+                .field(
+                    format!("Ability Score ({})", a.ability_score.name),
+                    format!("{}{}", API_SERVER, a.ability_score.url),
+                    false,
+                );
 
-        if a.reference.url != "" {
-            embed = embed
-                .clone()
-                .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            if a.reference.url != "" {
+                embed = embed
+                    .clone()
+                    .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            }
+            // Add a timestamp for the current time
+            // This also accepts a rfc3339 Timestamp
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content(_type[0]).embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
+        } else {
+            let mut embed = CreateEmbed::new().title("**All available Skills**");
+            for i in &RESOURCES_LIST["skills"].results {
+                embed = embed
+                    .clone()
+                    .field(format!("{}", i.name), format!("{}", i.index), true);
+            }
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content(_type[0]).embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
         }
-        // Add a timestamp for the current time
-        // This also accepts a rfc3339 Timestamp
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content(prf_type).embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
-    } else {
-        let mut embed = CreateEmbed::new().title("**All available Skills**");
-        for i in &RESOURCES_LIST["skills"].results {
-            embed = embed
-                .clone()
-                .field(format!("{}", i.name), format!("{}", i.index), true);
-        }
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content(prf_type).embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
+        Ok(())
     }
-    Ok(())
 }

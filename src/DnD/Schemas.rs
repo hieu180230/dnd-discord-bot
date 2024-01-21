@@ -8,7 +8,7 @@ use serenity::all::{CreateInteractionResponseMessage, Timestamp};
 use serenity::async_trait;
 use serenity::builder::{CreateButton, CreateEmbed, CreateMessage};
 
-use crate::DnD::{API_SERVER, Convert};
+use crate::DnD::{Convert, API_SERVER};
 
 //this store the API reference of an item
 #[derive(Deserialize, Debug, Eq, Hash, PartialEq, Clone)]
@@ -418,7 +418,7 @@ impl APIReferenceList {
 
     ///This function is to display as a paginated message on discord
     /// *The info parameter will contain the name of the class and the name of that class's resource list
-    pub async fn display(&self, info: Vec<String>) -> (CreateMessage, Vec<&[APIReference]>) {
+    pub async fn display(&self, info: Vec<&str>) -> (CreateMessage, Vec<&[APIReference]>) {
         let mut display_data = vec![];
         let mut start = 0;
         let mut end = 9;

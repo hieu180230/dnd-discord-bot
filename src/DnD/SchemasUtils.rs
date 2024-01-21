@@ -139,7 +139,6 @@ impl Choice {
             }
         }
 
-
         match &*self.from.option_set_type {
             "options_array" => {
                 for option in &self.from.options {
@@ -187,7 +186,7 @@ impl Choice {
                         res += " ";
                     }
                 }
-                res += &*format!("{} *{}*\n",bullet, self.from.equipment_category.name);
+                res += &*format!("{} *{}*\n", bullet, self.from.equipment_category.name);
             }
             "resource_list" => {
                 if level != 0 {
@@ -195,7 +194,7 @@ impl Choice {
                         res += " ";
                     }
                 }
-                res += &*format!("{} *{}*\n",bullet, self.from.resource_list_url);
+                res += &*format!("{} *{}*\n", bullet, self.from.resource_list_url);
             }
             _ => {}
         }

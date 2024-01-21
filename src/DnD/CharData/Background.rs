@@ -4,8 +4,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::string::ToString;
 
-use crate::DnD::Convert;
 use crate::DnD::Schemas::*;
+use crate::DnD::{Convert, SendResponse};
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
 use serenity::all::{CreateMessage, Message, Timestamp};
@@ -185,121 +185,115 @@ impl Convert for Background {
     }
 }
 
-pub async fn send_background_response(
-    ctx: &Context,
-    msg: &Message,
-    ali_type: String,
-) -> CommandResult {
-    if ali_type != "all".to_string() {
-        let client = Client::new();
-        let res = client
-            .get(format!(
-                "{}{}{}",
+#[async_trait]
+impl SendResponse for Background {
+    async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
+        if _type[0] != "all".to_string() {
+            let client = Client::new();
+            let res = client
+                .get(format!("{}{}{}", API_SERVER, BACKGROUND_LINK, _type[0]))
+                .send()
+                .await
+                .expect("fail to get to link")
+                .text()
+                .await
+                .expect("fail to convert to json");
+            let json: serde_json::Value = from_str(&res).expect("what?");
+            let mut a = Background::new();
+            a.from_value(json.clone()).await;
+
+            //turn fields to string for display
+            let mut feature: String = "".to_string();
+            let mut starting_profi: String = "".to_string();
+            let mut starting_equipments: String = "".to_string();
+            let personality: String = a.personality.display(0).await;
+            let mut starting_equipment_option: String = "".to_string();
+            let ideals: String = a.ideals.display(0).await;
+            let flaws: String = a.flaws.display(0).await;
+            let bonds: String = a.bonds.display(0).await;
+
+            for i in a.starting_proficiencies {
+                starting_profi += &*format!("*{}*\n", i.name);
+            }
+            for i in a.starting_equipment {
+                starting_equipments += &*format!("*{}*({})\n", i.0.name, i.1)
+            }
+            starting_equipment_option += &*format!(
+                "*{}* ({}{})",
+                a.starting_equipment_options.from.equipment_category.name,
                 API_SERVER,
-                BACKGROUND_LINK,
-                ali_type.to_string()
-            ))
-            .send()
-            .await
-            .expect("fail to get to link")
-            .text()
-            .await
-            .expect("fail to convert to json");
-        let json: serde_json::Value = from_str(&res).expect("what?");
-        let mut a = Background::new();
-        a.from_value(json.clone()).await;
-
-        //turn fields to string for display
-        let mut feature: String = "".to_string();
-        let mut starting_profi: String = "".to_string();
-        let mut starting_equipments: String = "".to_string();
-        let personality: String = a.personality.display(0).await;
-        let mut starting_equipment_option: String = "".to_string();
-        let ideals: String = a.ideals.display(0).await;
-        let flaws: String = a.flaws.display(0).await;
-        let bonds: String = a.bonds.display(0).await;
-
-        for i in a.starting_proficiencies {
-            starting_profi += &*format!("*{}*\n", i.name);
-        }
-        for i in a.starting_equipment {
-            starting_equipments += &*format!("*{}*({})\n", i.0.name, i.1)
-        }
-        starting_equipment_option += &*format!(
-            "*{}* ({}{})",
-            a.starting_equipment_options.from.equipment_category.name,
-            API_SERVER,
-            a.starting_equipment_options.from.equipment_category.url
-        );
-        for i in a.feature.desc {
-            feature += &*format!("*{}*\n", i);
-        }
-
-        let mut embed = CreateEmbed::new()
-            .title(format!("{}", a.reference.name))
-            .field(a.feature.feature_type, feature, false)
-            .field(
-                format!("Personality traits ({} choice(s))", a.personality.choose),
-                personality,
-                false,
-            )
-            .field(
-                format!("Flaws ({} choice(s))", a.flaws.choose),
-                flaws,
-                false,
-            )
-            .field(
-                format!("Bonds ({} choice(s))", a.bonds.choose),
-                bonds,
-                false,
-            )
-            .field("Starting Proficiencies", starting_profi, false)
-            .field("Starting Equipments", starting_equipments, false)
-            .field(
-                format!(
-                    "Starting Equipment Option ({} choice(s))",
-                    a.starting_equipment_options.choose
-                ),
-                starting_equipment_option,
-                false,
-            )
-            .field(
-                format!("Ideals ({} choice(s))", a.ideals.choose),
-                ideals,
-                false,
-            )
-            .field(
-                format!("Languages ({} choice(s))", a.language_option.choose),
-                format!(
-                    "URL: {}{}",
-                    API_SERVER, a.language_option.from.resource_list_url
-                ),
-                false,
+                a.starting_equipment_options.from.equipment_category.url
             );
-        if a.reference.url != "" {
-            embed = embed
-                .clone()
-                .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            for i in a.feature.desc {
+                feature += &*format!("*{}*\n", i);
+            }
+
+            let mut embed = CreateEmbed::new()
+                .title(format!("{}", a.reference.name))
+                .field(a.feature.feature_type, feature, false)
+                .field(
+                    format!("Personality traits ({} choice(s))", a.personality.choose),
+                    personality,
+                    false,
+                )
+                .field(
+                    format!("Flaws ({} choice(s))", a.flaws.choose),
+                    flaws,
+                    false,
+                )
+                .field(
+                    format!("Bonds ({} choice(s))", a.bonds.choose),
+                    bonds,
+                    false,
+                )
+                .field("Starting Proficiencies", starting_profi, false)
+                .field("Starting Equipments", starting_equipments, false)
+                .field(
+                    format!(
+                        "Starting Equipment Option ({} choice(s))",
+                        a.starting_equipment_options.choose
+                    ),
+                    starting_equipment_option,
+                    false,
+                )
+                .field(
+                    format!("Ideals ({} choice(s))", a.ideals.choose),
+                    ideals,
+                    false,
+                )
+                .field(
+                    format!("Languages ({} choice(s))", a.language_option.choose),
+                    format!(
+                        "URL: {}{}",
+                        API_SERVER, a.language_option.from.resource_list_url
+                    ),
+                    false,
+                );
+            if a.reference.url != "" {
+                embed = embed
+                    .clone()
+                    .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
+            }
+            // Add a timestamp for the current time
+            // This also accepts a rfc3339 Timestamp
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content("test!").embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
+        } else {
+            let mut embed = CreateEmbed::new().title("**All available Backgrounds**");
+            for i in &RESOURCES_LIST["backgrounds"].results {
+                embed = embed
+                    .clone()
+                    .field(format!("{}", i.name), format!("{}", i.index), true);
+            }
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content(_type[0]).embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
         }
-        // Add a timestamp for the current time
-        // This also accepts a rfc3339 Timestamp
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content("test!").embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
-    } else {
-        let mut embed = CreateEmbed::new().title("**All available Backgrounds**");
-        for i in &RESOURCES_LIST["backgrounds"].results {
-            embed = embed
-                .clone()
-                .field(format!("{}", i.name), format!("{}", i.index), true);
-        }
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content(ali_type).embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
+        Ok(())
     }
-    Ok(())
 }

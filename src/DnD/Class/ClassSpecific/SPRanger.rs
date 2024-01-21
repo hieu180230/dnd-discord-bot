@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPRanger {
     favoured_enemies: i32,
@@ -20,6 +20,9 @@ impl SPConvert for SPRanger {
         self.favoured_terrain = json["favoured_terrain"].as_i64().unwrap() as i32;
     }
     fn display(&self) -> String {
-        format!("Favoured Enemies: {}\nFavoured Terrain: {}", self.favoured_enemies, self.favoured_terrain)
+        format!(
+            "Favoured Enemies: {}\nFavoured Terrain: {}",
+            self.favoured_enemies, self.favoured_terrain
+        )
     }
 }

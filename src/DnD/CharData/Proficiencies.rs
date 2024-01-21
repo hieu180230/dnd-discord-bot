@@ -1,5 +1,5 @@
-use crate::DnD::Convert;
 use crate::DnD::Schemas::APIReference;
+use crate::DnD::{Convert, SendResponse};
 use crate::DnD::{API_SERVER, RESOURCES_LIST};
 
 use reqwest::Client;
@@ -104,94 +104,82 @@ impl Convert for Proficiencies {
     }
 }
 
-pub async fn send_proficiencies_response(
-    ctx: &Context,
-    msg: &Message,
-    prf_type: String,
-) -> CommandResult {
-    if prf_type != *"all" {
-        let client = Client::new();
-        let res = client
-            .get(format!(
-                "{}{}{}",
-                API_SERVER,
-                PROFICIENCIES_URL,
-                prf_type
-            ))
-            .send()
-            .await
-            .expect("fail to get to link")
-            .text()
-            .await
-            .expect("fail to convert to json");
-        let json: serde_json::Value = from_str(&res).expect("what?");
-        let mut a = Proficiencies::new();
-        a.from_value(json.clone()).await;
+#[async_trait]
+impl SendResponse for Proficiencies {
+    async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
+        if _type[0] != "all" {
+            let client = Client::new();
+            let res = client
+                .get(format!("{}{}{}", API_SERVER, PROFICIENCIES_URL, _type[0]))
+                .send()
+                .await
+                .expect("fail to get to link")
+                .text()
+                .await
+                .expect("fail to convert to json");
+            let json: serde_json::Value = from_str(&res).expect("what?");
+            let mut a = Proficiencies::new();
+            a.from_value(json.clone()).await;
 
-        let mut races: String = "".to_string();
-        let mut classes: String = "".to_string();
-        for race in &a.races {
-            races += &*format!("+ *{}*\n", race.name);
-        }
-        for class in &a.classes {
-            classes += &*format!("+ *{}*\n", class.name);
-        }
+            let mut races: String = "".to_string();
+            let mut classes: String = "".to_string();
+            for race in &a.races {
+                races += &*format!("+ *{}*\n", race.name);
+            }
+            for class in &a.classes {
+                classes += &*format!("+ *{}*\n", class.name);
+            }
 
-        let mut embed = CreateEmbed::new()
-            .title(a.reference.name.clone())
-            .field("Type", a.proficiencies_type.clone(), false)
-            .fields(vec![
-                (
-                    "Classes",
-                    (|| -> String {
-                        if a.classes.is_empty() {
-
-                            "None".to_string()
-                        } else {
-
-                            classes
-                        }
-                    })(),
-                    true,
-                ),
-                (
-                    "Races",
-                    (|| -> String {
-                        if a.races.is_empty() {
-
-                            "None".to_string()
-                        } else {
-
-                            races
-                        }
-                    })(),
-                    true,
-                ),
-            ]);
-        if !a.references.url.is_empty() {
-            embed = embed
-                .clone()
-                .url(format!("{}{}", API_SERVER, a.references.url).to_string());
+            let mut embed = CreateEmbed::new()
+                .title(a.reference.name.clone())
+                .field("Type", a.proficiencies_type.clone(), false)
+                .fields(vec![
+                    (
+                        "Classes",
+                        (|| -> String {
+                            if a.classes.is_empty() {
+                                "None".to_string()
+                            } else {
+                                classes
+                            }
+                        })(),
+                        true,
+                    ),
+                    (
+                        "Races",
+                        (|| -> String {
+                            if a.races.is_empty() {
+                                "None".to_string()
+                            } else {
+                                races
+                            }
+                        })(),
+                        true,
+                    ),
+                ]);
+            if !a.references.url.is_empty() {
+                embed = embed
+                    .clone()
+                    .url(format!("{}{}", API_SERVER, a.references.url).to_string());
+            }
+            // Add a timestamp for the current time
+            // This also accepts a rfc3339 Timestamp
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content(_type[0]).embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
+        } else {
+            let mut embed = CreateEmbed::new().title("**All available Proficiencies**");
+            for i in &RESOURCES_LIST["proficiencies"].results {
+                embed = embed.clone().field(i.name.clone(), i.index.clone(), true);
+            }
+            embed = embed.clone().timestamp(Timestamp::now());
+            let builder = CreateMessage::new().content(_type[0]).embed(embed);
+            if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
+                println!("Error {:?}", why);
+            }
         }
-        // Add a timestamp for the current time
-        // This also accepts a rfc3339 Timestamp
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content(prf_type).embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
-    } else {
-        let mut embed = CreateEmbed::new().title("**All available Proficiencies**");
-        for i in &RESOURCES_LIST["proficiencies"].results {
-            embed = embed
-                .clone()
-                .field(i.name.clone(), i.index.clone(), true);
-        }
-        embed = embed.clone().timestamp(Timestamp::now());
-        let builder = CreateMessage::new().content(prf_type).embed(embed);
-        if let Err(why) = msg.channel_id.send_message(&ctx.http, builder).await {
-            println!("Error {:?}", why);
-        }
+        Ok(())
     }
-    Ok(())
 }

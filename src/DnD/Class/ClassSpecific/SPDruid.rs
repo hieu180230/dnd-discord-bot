@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPDruid {
     wild_shape_max_cr: i32,
@@ -23,6 +23,9 @@ impl SPConvert for SPDruid {
         self.wild_shape_fly = json["wild_shape_fly"].as_bool().unwrap();
     }
     fn display(&self) -> String {
-        format!("Wild Shape Max CR: {}\nWild Shape Swim: {}\nWild Shape Fly: {}", self.wild_shape_max_cr, self.wild_shape_swim, self.wild_shape_fly)
+        format!(
+            "Wild Shape Max CR: {}\nWild Shape Swim: {}\nWild Shape Fly: {}",
+            self.wild_shape_max_cr, self.wild_shape_swim, self.wild_shape_fly
+        )
     }
 }

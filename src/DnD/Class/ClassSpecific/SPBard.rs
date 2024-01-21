@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPBard {
     bardic_inspiration_dice: i32,

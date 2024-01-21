@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPCleric {
     channel_divinity_charge: i32,
@@ -20,6 +20,9 @@ impl SPConvert for SPCleric {
         self.destroy_undead_cr = json["destroy_undead_cr"].as_i64().unwrap() as i32;
     }
     fn display(&self) -> String {
-        format!("Channel Divinity Charges: {}\nDestroy Undead CR: {}", self.channel_divinity_charge, self.destroy_undead_cr)
+        format!(
+            "Channel Divinity Charges: {}\nDestroy Undead CR: {}",
+            self.channel_divinity_charge, self.destroy_undead_cr
+        )
     }
 }

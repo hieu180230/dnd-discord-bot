@@ -1,14 +1,12 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPPaladin {
     aura_range: i32,
 }
 impl SPPaladin {
     pub fn new() -> Self {
-        SPPaladin {
-            aura_range: -1,
-        }
+        SPPaladin { aura_range: -1 }
     }
 }
 #[async_trait]

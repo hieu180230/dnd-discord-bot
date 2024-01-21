@@ -1,5 +1,5 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
+use serenity::async_trait;
 
 pub struct SPFighter {
     action_surges: i32,
@@ -23,6 +23,9 @@ impl SPConvert for SPFighter {
         self.extra_attacks = json["extra_attacks"].as_i64().unwrap() as i32;
     }
     fn display(&self) -> String {
-        format!("Action Surges: {}\nIndomitable Uses: {}\nExtra Attacks: {}", self.action_surges, self.indomitable_uses, self.extra_attacks)
+        format!(
+            "Action Surges: {}\nIndomitable Uses: {}\nExtra Attacks: {}",
+            self.action_surges, self.indomitable_uses, self.extra_attacks
+        )
     }
 }

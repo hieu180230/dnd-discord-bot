@@ -1,5 +1,5 @@
+use crate::DnD::Class::ClassSpecific::SPFactory::SPConvert;
 use serenity::async_trait;
-use crate::DnD::Class::ClassSpecific::SPFactory::{SPConvert};
 
 pub struct SPBarbarian {
     rage_count: i32,
@@ -23,6 +23,9 @@ impl SPConvert for SPBarbarian {
         self.brutal_crit_dice = json["brutal_critical_dice"].as_i64().unwrap() as i32;
     }
     fn display(&self) -> String {
-        format!("Rage Count: {}\nRage Damage Bonus: {}\nBrutal Critical Dice: {}", self.rage_count, self.rage_damage_bonus, self.brutal_crit_dice)
+        format!(
+            "Rage Count: {}\nRage Damage Bonus: {}\nBrutal Critical Dice: {}",
+            self.rage_count, self.rage_damage_bonus, self.brutal_crit_dice
+        )
     }
 }

@@ -1,12 +1,11 @@
-use serenity::async_trait;
 use crate::DnD::Class::ClassSpecific::*;
+use serenity::async_trait;
 
 #[async_trait]
 pub trait SPConvert {
     async fn from_value(&mut self, json: serde_json::Value);
     fn display(&self) -> String;
 }
-
 
 pub enum ClassType {
     Barbarian,
@@ -24,7 +23,7 @@ pub enum ClassType {
 }
 pub struct SPFactory;
 impl SPFactory {
-    pub fn new(class: &ClassType) -> Box<dyn SPConvert + Send>  {
+    pub fn new(class: &ClassType) -> Box<dyn SPConvert + Send> {
         match class {
             ClassType::Barbarian => Box::new(SPBarbarian::SPBarbarian::new()),
             ClassType::Bard => Box::new(SPBard::SPBard::new()),
