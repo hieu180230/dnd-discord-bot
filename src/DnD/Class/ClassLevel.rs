@@ -152,7 +152,7 @@ impl Convert for ClassLevel {
     }
 }
 
-fn paginate_class_level(class_levels: &Vec<ClassLevel>, page: i32, title: String) -> CreateEmbed {
+fn paginate_class_level(class_levels: &[ClassLevel], page: i32, title: String) -> CreateEmbed {
     // turn attributes into string for display
 
     let mut feature = "".to_string();
@@ -293,9 +293,10 @@ impl SendResponse for ClassLevel {
             if let Err(why) = msg.channel_id.send_message(&ctx.http, message).await {
                 println!("Error {:?}", why);
             }
-            return Ok(())
+            return Ok(());
         }
-        message = message.button(CreateButton::new("first").label("<<"))
+        message = message
+            .button(CreateButton::new("first").label("<<"))
             .button(CreateButton::new("prev").label("<"))
             .button(CreateButton::new("next").label(">"))
             .button(CreateButton::new("last").label(">>"));

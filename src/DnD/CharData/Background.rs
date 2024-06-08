@@ -22,13 +22,13 @@ impl Feature {
     pub async fn display(&self, level: i64) -> String {
         let mut res = "".to_string();
         if level == 0 {
-            for _ in [0..level - 1] {
+            for _ in 0..level - 1 {
                 res += " ";
             }
         }
         for i in &self.desc {
             if level != 0 {
-                for _ in [0..level - 1] {
+                for _ in 0..level - 1 {
                     res += " ";
                 }
             }
@@ -44,6 +44,11 @@ impl Feature {
             feature_type: "".to_string(),
             desc: vec![],
         }
+    }
+}
+impl Default for Feature {
+    fn default() -> Self {
+        Feature::new()
     }
 }
 
@@ -77,6 +82,11 @@ impl Background {
             bonds: Choice::new(),
             flaws: Choice::new(),
         }
+    }
+}
+impl Default for Background {
+    fn default() -> Self {
+        Background::new()
     }
 }
 
@@ -188,7 +198,7 @@ impl Convert for Background {
 #[async_trait]
 impl SendResponse for Background {
     async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
-        if _type[0] != "all".to_string() {
+        if _type[0] != "all" {
             let client = Client::new();
             let res = client
                 .get(format!("{}{}{}", API_SERVER, BACKGROUND_LINK, _type[0]))
@@ -229,7 +239,7 @@ impl SendResponse for Background {
             }
 
             let mut embed = CreateEmbed::new()
-                .title(format!("{}", a.reference.name))
+                .title(a.reference.name.clone())
                 .field(a.feature.feature_type, feature, false)
                 .field(
                     format!("Personality traits ({} choice(s))", a.personality.choose),
@@ -269,7 +279,7 @@ impl SendResponse for Background {
                     ),
                     false,
                 );
-            if a.reference.url != "" {
+            if !a.reference.url.is_empty() {
                 embed = embed
                     .clone()
                     .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
@@ -284,9 +294,7 @@ impl SendResponse for Background {
         } else {
             let mut embed = CreateEmbed::new().title("**All available Backgrounds**");
             for i in &RESOURCES_LIST["backgrounds"].results {
-                embed = embed
-                    .clone()
-                    .field(format!("{}", i.name), format!("{}", i.index), true);
+                embed = embed.clone().field(i.name.clone(), i.index.clone(), true);
             }
             embed = embed.clone().timestamp(Timestamp::now());
             let builder = CreateMessage::new().content(_type[0]).embed(embed);

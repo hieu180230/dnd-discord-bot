@@ -16,13 +16,13 @@ use serenity::utils::CreateQuickModal;
 
 ///This is a slash command. Fetching an image or a fact from the API
 #[derive(Deserialize)]
-struct CAT {
+struct Cat {
     fact: String,
     length: u16,
 }
 
 #[derive(Deserialize)]
-struct ICAT {
+struct ICat {
     id: String,
     url: String,
     width: f64,
@@ -37,16 +37,15 @@ async fn cat_image() -> CreateEmbed {
         .send()
         .await
         .expect("fail to get to link")
-        .json::<Vec<ICAT>>()
+        .json::<Vec<ICat>>()
         .await
         .expect("fail to convert to json");
-    let embed = CreateEmbed::new()
+    CreateEmbed::new()
         .description("Random cat :3")
         .image(&res[0].url)
         // Add a timestamp for the current time
         // This also accepts a rfc3339 Timestamp
-        .timestamp(Timestamp::now());
-    embed
+        .timestamp(Timestamp::now())
 }
 
 ///Fetch the Cat Image API, get the fact and put it into an embed.
@@ -57,16 +56,15 @@ async fn cat_fact() -> CreateEmbed {
         .send()
         .await
         .expect("failed to get response")
-        .json::<CAT>()
+        .json::<Cat>()
         .await
         .expect("failed to get payload");
-    let embed = CreateEmbed::new()
+    CreateEmbed::new()
         .title("This is a dump cat fact!")
         .description(response.fact)
         // Add a timestamp for the current time
         // This also accepts a rfc3339 Timestamp
-        .timestamp(Timestamp::now());
-    embed
+        .timestamp(Timestamp::now())
 }
 
 ///Return a appropriate embed
@@ -82,11 +80,11 @@ pub async fn run(
     }) = _options.first()
     {
         println!("{}", command);
-        match command {
-            &"image" => {
+        match *command {
+            "image" => {
                 builder = cat_image().await;
             }
-            &"fact" => {
+            "fact" => {
                 builder = cat_fact().await;
             }
             _ => {

@@ -105,6 +105,13 @@ impl Default for Damage {
         Self::new()
     }
 }
+#[async_trait]
+impl Convert for Damage {
+    async fn from_value(&mut self, json: Value) {
+        self.damage_type = APIReference::parse(&json["damage_type"]);
+        self.damage_dice = json["damage_dice"].as_str().unwrap().to_string();
+    }
+}
 
 //Option and its structs
 

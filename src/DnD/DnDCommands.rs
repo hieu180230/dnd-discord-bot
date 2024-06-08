@@ -6,6 +6,7 @@ use crate::DnD::CharData::Proficiencies::*;
 use crate::DnD::CharData::Skills::*;
 use crate::DnD::Class::ClassInfo::*;
 use crate::DnD::Class::ClassLevel::*;
+use crate::DnD::Mechanic::GameMechanic::*;
 use crate::DnD::Schemas::APIReferenceList;
 use crate::DnD::SendResponse;
 use crate::DnD::RESOURCES_LIST;
@@ -35,15 +36,16 @@ pub async fn str_from_vec(a: Vec<String>) -> String {
     look_up_language,
     look_up_proficiency,
     look_up_skill,
-    look_up_class
+    look_up_class,
+    look_up_mechanic
 )]
 struct DnD;
 
 #[macros::command]
 #[aliases(ability)]
-async fn look_up_abi(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn look_up_abi(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         AbilityScore::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -69,7 +71,7 @@ async fn look_up_abi(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 #[aliases(alignment)]
 async fn look_up_ali(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         Alignment::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -95,7 +97,7 @@ async fn look_up_ali(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 #[aliases(background)]
 async fn look_up_bg(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         Background::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -121,7 +123,7 @@ async fn look_up_bg(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[aliases(language)]
 async fn look_up_language(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         Language::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -147,7 +149,7 @@ async fn look_up_language(ctx: &Context, msg: &Message, args: Args) -> CommandRe
 #[aliases(proficiency)]
 async fn look_up_proficiency(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         Proficiencies::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -173,7 +175,7 @@ async fn look_up_proficiency(ctx: &Context, msg: &Message, args: Args) -> Comman
 #[aliases(skill)]
 async fn look_up_skill(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         Skill::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -199,7 +201,7 @@ async fn look_up_skill(ctx: &Context, msg: &Message, args: Args) -> CommandResul
 #[aliases(class)]
 async fn look_up_class(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut alias = args.clone();
-    if alias.current().unwrap_or_default().to_lowercase() == *"all" {
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
         ClassInfo::send_response(ctx, msg, vec!["all"])
             .await
             .expect("TODO: panic message");
@@ -279,6 +281,49 @@ async fn look_up_class(ctx: &Context, msg: &Message, args: Args) -> CommandResul
                 }
                 _ => {}
             }
+            return Ok(());
+        }
+    }
+    msg.reply(
+        ctx,
+        format!("Unknown alias: {:?}", alias.current().unwrap_or_default()),
+    )
+    .await?;
+    Ok(())
+}
+
+#[macros::command]
+#[aliases(mechanic)]
+async fn look_up_mechanic(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let mut alias = args.clone();
+    //show all mechanics
+    if alias.current().unwrap_or_default().to_lowercase() == *"all" || alias.current().is_none() {
+        GameMechanic::send_response(ctx, msg, vec!["all"])
+            .await
+            .expect("TODO: panic message");
+        return Ok(());
+    }
+    //get the mechanic index
+    let resource_endpoint = match alias.current().unwrap_or_default().to_lowercase().as_str() {
+        "conditions" => "conditions",
+        "damagetypes" => "damage-types",
+        "magicschools" => "magic-schools",
+        _ => "none",
+    };
+    alias.advance();
+    //show all mechanics of a type
+    if alias.current().is_none() || alias.current().unwrap_or_default().to_lowercase() == *"all" {
+        GameMechanic::send_response(ctx, msg, vec![resource_endpoint, "all"])
+            .await
+            .expect("TODO: panic message");
+        return Ok(());
+    }
+    //show a specific mechanic of a type
+    for i in &RESOURCES_LIST[resource_endpoint].results {
+        if alias.current().unwrap_or_default().to_lowercase() == i.index {
+            GameMechanic::send_response(ctx, msg, vec![resource_endpoint, i.index.as_str()])
+                .await
+                .expect("TODO: panic message");
             return Ok(());
         }
     }

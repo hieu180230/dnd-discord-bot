@@ -13,7 +13,8 @@ use tokio::task;
 pub mod CharData;
 pub mod Class;
 pub mod DnDCommands;
-pub mod GameMechanic;
+pub mod Equipment;
+pub mod Mechanic;
 pub mod Schemas;
 pub mod SchemasUtils;
 

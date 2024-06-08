@@ -29,7 +29,11 @@ impl Skill {
         }
     }
 }
-
+impl Default for Skill {
+    fn default() -> Self {
+        Skill::new()
+    }
+}
 ///get skill's instance from a json serde_json::Value
 #[async_trait]
 impl Convert for Skill {
@@ -72,7 +76,7 @@ impl Convert for Skill {
 #[async_trait]
 impl SendResponse for Skill {
     async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
-        if _type[0] != "all".to_string() {
+        if _type[0] != "all" {
             let client = Client::new();
             let res = client
                 .get(format!("{}{}{}", API_SERVER, SKILL_URL, _type[0]))
@@ -92,7 +96,7 @@ impl SendResponse for Skill {
             }
 
             let mut embed = CreateEmbed::new()
-                .title(format!("{}", a.reference.name))
+                .title(a.reference.name.clone())
                 .description(description)
                 .field(
                     format!("Ability Score ({})", a.ability_score.name),
@@ -100,7 +104,7 @@ impl SendResponse for Skill {
                     false,
                 );
 
-            if a.reference.url != "" {
+            if !a.reference.url.is_empty() {
                 embed = embed
                     .clone()
                     .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
@@ -115,9 +119,7 @@ impl SendResponse for Skill {
         } else {
             let mut embed = CreateEmbed::new().title("**All available Skills**");
             for i in &RESOURCES_LIST["skills"].results {
-                embed = embed
-                    .clone()
-                    .field(format!("{}", i.name), format!("{}", i.index), true);
+                embed = embed.clone().field(i.name.clone(), i.index.clone(), true);
             }
             embed = embed.clone().timestamp(Timestamp::now());
             let builder = CreateMessage::new().content(_type[0]).embed(embed);

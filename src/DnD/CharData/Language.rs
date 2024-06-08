@@ -117,7 +117,7 @@ impl Convert for Language {
 #[async_trait]
 impl SendResponse for Language {
     async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
-        if _type[0] != "all".to_string() {
+        if _type[0] != "all" {
             let client = Client::new();
             let res = client
                 .get(format!("{}{}{}", API_SERVER, LANGUAGE_URL, _type[0]))
@@ -137,23 +137,23 @@ impl SendResponse for Language {
             }
 
             let mut embed = CreateEmbed::new()
-                .title(format!("{}", a.reference.name))
+                .title(a.reference.name.clone())
                 .fields(vec![
                     ("Type", format!("{:?}", a.language_type), true),
                     (
                         "Script",
-                        (|| -> String {
-                            if a.script == "" {
-                                return "None".to_string();
+                        {
+                            if a.script.is_empty() {
+                                "None".to_string()
                             } else {
-                                return a.script;
+                                a.script
                             }
-                        })(),
+                        },
                         true,
                     ),
                 ])
                 .field("Typical Speakers\n", speakers, false);
-            if a.reference.url != "" {
+            if !a.reference.url.is_empty() {
                 embed = embed
                     .clone()
                     .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
@@ -168,9 +168,7 @@ impl SendResponse for Language {
         } else {
             let mut embed = CreateEmbed::new().title("**All available Languages**");
             for i in &RESOURCES_LIST["languages"].results {
-                embed = embed
-                    .clone()
-                    .field(format!("{}", i.name), format!("{}", i.index), true);
+                embed = embed.clone().field(i.name.clone(), i.index.clone(), true);
             }
             embed = embed.clone().timestamp(Timestamp::now());
             let builder = CreateMessage::new().content(_type[0]).embed(embed);

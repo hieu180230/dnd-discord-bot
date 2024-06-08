@@ -40,6 +40,12 @@ impl Alignment {
         }
     }
 }
+impl Default for Alignment {
+    fn default() -> Self {
+        Alignment::new()
+    }
+}
+
 const ALIGNMENT_LINK: &str = "/api/alignments/";
 #[async_trait]
 impl Convert for Alignment {
@@ -80,7 +86,7 @@ impl Convert for Alignment {
 #[async_trait]
 impl SendResponse for Alignment {
     async fn send_response(ctx: &Context, msg: &Message, _type: Vec<&str>) -> CommandResult {
-        if _type[0] != "all".to_string() {
+        if _type[0] != "all" {
             let client = Client::new();
             let res = client
                 .get(format!("{}{}{}", API_SERVER, ALIGNMENT_LINK, _type[0]))
@@ -96,7 +102,7 @@ impl SendResponse for Alignment {
             let mut embed = CreateEmbed::new()
                 .title(format!("{}/{}", a.reference.name, a.abbreviation))
                 .description(a.desc);
-            if a.reference.url != "" {
+            if !a.reference.url.is_empty() {
                 embed = embed
                     .clone()
                     .url(format!("{}{}", API_SERVER, a.reference.url).to_string());
@@ -111,9 +117,7 @@ impl SendResponse for Alignment {
         } else {
             let mut embed = CreateEmbed::new().title("**All available Alignments**");
             for i in &RESOURCES_LIST["alignments"].results {
-                embed = embed
-                    .clone()
-                    .field(format!("{}", i.name), format!("{}", i.index), true);
+                embed = embed.clone().field(i.name.clone(), i.index.clone(), true);
             }
             embed = embed.clone().timestamp(Timestamp::now());
             let builder = CreateMessage::new().content(_type[0]).embed(embed);

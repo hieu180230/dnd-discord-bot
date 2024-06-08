@@ -1,4 +1,4 @@
-use crate::{Cat, HELP_MESSAGE};
+use crate::{Cat, DnD, HELP_MESSAGE};
 use std::error;
 use std::marker::Send;
 use std::sync::Arc;
@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use serenity::async_trait;
 use serenity::builder::{
-    CreateButton, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage,
-    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
+    CreateButton, CreateCommand, CreateInteractionResponse, CreateInteractionResponseMessage,
+    CreateMessage, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
 };
 
 use serenity::framework::standard::{macros, Args, CommandResult};
@@ -239,7 +239,6 @@ impl EventHandler for Handler {
                         .description("???"),
                 ),
             };
-
             if let Some(content) = content {
                 let data = CreateInteractionResponseMessage::new().embed(content);
                 let builder = CreateInteractionResponse::Message(data);
@@ -250,13 +249,16 @@ impl EventHandler for Handler {
         }
     }
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is ready!", ready.user.name);
-
+        let mut commands: Vec<CreateCommand> = Vec::new();
         //register slash command
-        let commands = Command::create_global_command(&ctx.http, Cat::register()).await;
-        println!(
-            "I now have the following guild slash commands: {:?}",
-            commands.unwrap().name
-        );
+        commands.push(Cat::register());
+        Command::set_global_commands(&ctx.http, commands)
+            .await
+            .unwrap();
+        for i in Command::get_global_commands(&ctx.http).await.unwrap() {
+            println!("{:?}", i.name);
+        }
+        //println!("{}\n", init_message);
+        println!("{} is ready!", ready.user.name);
     }
 }

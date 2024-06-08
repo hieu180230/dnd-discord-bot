@@ -121,6 +121,7 @@ impl SendResponse for Proficiencies {
             let mut a = Proficiencies::new();
             a.from_value(json.clone()).await;
 
+            //turn fields into strings fro displaying
             let mut races: String = "".to_string();
             let mut classes: String = "".to_string();
             for race in &a.races {
@@ -136,24 +137,24 @@ impl SendResponse for Proficiencies {
                 .fields(vec![
                     (
                         "Classes",
-                        (|| -> String {
+                        {
                             if a.classes.is_empty() {
                                 "None".to_string()
                             } else {
                                 classes
                             }
-                        })(),
+                        },
                         true,
                     ),
                     (
                         "Races",
-                        (|| -> String {
+                        {
                             if a.races.is_empty() {
                                 "None".to_string()
                             } else {
                                 races
                             }
-                        })(),
+                        },
                         true,
                     ),
                 ]);
