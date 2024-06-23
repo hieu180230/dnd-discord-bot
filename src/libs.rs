@@ -7,6 +7,8 @@ pub mod Joke;
 //for D&D
 pub mod DnD;
 
+pub mod Manager;
+
 pub const HELP_MESSAGE: &str = "
 You have summoned me. Let's see about getting you what you need.
 
