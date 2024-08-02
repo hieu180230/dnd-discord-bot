@@ -171,7 +171,7 @@ impl SendEquipmentResponse for EquipmentWeapon {
         }
 
         let mut embed = CreateEmbed::new()
-            .title(format!("{}: {}\n{} (Cost: {} {})",weapon.equipment_category.name.clone(), weapon.info.name.clone(), weapon.category_range.clone(), weapon.cost.unwrap().get().0.clone(), weapon.cost.unwrap().get().1.clone()))
+            .title(format!("{}: {}\n{} (Cost: {} {})",weapon.equipment_category.name.clone(), weapon.info.name.clone(), weapon.category_range.clone(), weapon.cost.as_ref().unwrap().get().0.clone(), weapon.cost.as_ref().unwrap().get().1.clone()))
             .description(description);
         embed = embed.clone().timestamp(Timestamp::now());
         let builder = CreateMessage::new().content("test!").embed(embed);

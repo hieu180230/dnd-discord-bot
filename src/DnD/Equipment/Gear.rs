@@ -95,7 +95,7 @@ impl SendEquipmentResponse for EquipmentGear {
         }
 
         let mut embed = CreateEmbed::new()
-            .title(format!("{}: {}\n{} (Cost: {} {})",gear.equipment_category.name.clone(), gear.info.name.clone(), gear.gear_category.name.clone(), gear.cost.unwrap().get().0.clone(), gear.cost.unwrap().get().1.clone()))
+            .title(format!("{}: {}\n{} (Cost: {} {})",gear.equipment_category.name.clone(), gear.info.name.clone(), gear.gear_category.name.clone(), gear.cost.as_ref().unwrap().get().0.clone(), gear.cost.as_ref().unwrap().get().1.clone()))
             .description(description);
         embed = embed.clone().timestamp(Timestamp::now());
         let builder = CreateMessage::new().content("test!").embed(embed);
