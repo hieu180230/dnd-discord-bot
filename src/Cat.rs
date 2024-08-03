@@ -67,7 +67,7 @@ async fn cat_fact() -> CreateEmbed {
         .timestamp(Timestamp::now())
 }
 
-///Return a appropriate embed
+//Return a appropriate embed for slash command
 pub async fn run(
     ctx: &Context,
     _options: &[ResolvedOption<'_>],
@@ -101,7 +101,7 @@ pub async fn run(
     builder
 }
 
-///Register slash command to Discord
+///Register slash command to Discord server
 pub fn register() -> CreateCommand {
     CreateCommand::new("cat")
         .description("A cat command")

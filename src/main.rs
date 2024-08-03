@@ -9,7 +9,7 @@
 use discord_bot::DnD::DnDCommands::DND_GROUP;
 use discord_bot::DnD::Schemas::APIReferenceList;
 use discord_bot::DnD::{DnDCommands, RESOURCES_LIST};
-use discord_bot::Handler::{Handler, ShardManagerContainer, MANAGER_GROUP};
+use discord_bot::Handler::{Handler, ShardManagerContainer};
 use dotenv::dotenv;
 use serenity::{
     async_trait,
@@ -41,7 +41,6 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
     let framework: StandardFramework = StandardFramework::new()
-        .group(&MANAGER_GROUP)
         .group(&DND_GROUP);
     framework.configure(Configuration::new().prefix("!"));
 

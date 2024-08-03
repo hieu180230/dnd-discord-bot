@@ -1,4 +1,4 @@
-use crate::{Cat, DnD, HELP_MESSAGE};
+use crate::{Cat, Manager::Manager, DnD, HELP_MESSAGE};
 use std::error;
 use std::marker::Send;
 use std::sync::Arc;
@@ -29,86 +29,7 @@ impl TypeMapKey for ShardManagerContainer {
 }
 
 //command building start here
-#[macros::command]
-async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.say(&ctx.http, HELP_MESSAGE).await?;
-    Ok(())
-}
-#[macros::command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    let channel = match msg.channel_id.to_channel(&ctx).await {
-        Ok(channel) => channel,
-        Err(why) => {
-            println!("Error getting channel: {:?}", why);
-            return Err(Box::new(why) as Box<dyn error::Error + Send + Sync>);
-        }
-    };
-    let content = MessageBuilder::new()
-        .push("User ")
-        .push_bold_safe(&msg.author.name) //this make the text italic or bold, ...
-        .push(" ping the channel ")
-        .mention(&channel)
-        .build();
-    let resp = CreateMessage::new().content(content).select_menu(
-        CreateSelectMenu::new(
-            "custom_id",
-            CreateSelectMenuKind::String {
-                options: vec![
-                    CreateSelectMenuOption::new("label1", "value1"),
-                    CreateSelectMenuOption::new("label2", "value2"),
-                ],
-            },
-        )
-        .placeholder("holder"),
-    );
-    if let Err(why) = msg.channel_id.send_message(&ctx.http, resp).await {
-        println!("Error sending ping msg: {:?}", why);
-    }
-    return Ok(());
-}
-#[macros::command]
-async fn latency(ctx: &Context, msg: &Message) -> CommandResult {
-    let data = ctx.data.read().await;
 
-    let shardmanager = match data.get::<ShardManagerContainer>() {
-        Some(v) => v,
-        None => {
-            msg.reply(ctx, "problem getting shard manager")
-                .await
-                .expect("problem sending error message");
-            return Ok(());
-        }
-    };
-
-    let runners = shardmanager.runners.lock().await;
-
-    let runner = match runners.get(&ctx.shard_id) {
-        Some(runner) => runner,
-        None => {
-            msg.reply(&ctx, "No shard found")
-                .await
-                .expect("problem sending error message");
-            return Ok(());
-        }
-    };
-
-    msg.reply(&ctx, &format!("Latency: {:?}", runner.latency.unwrap()))
-        .await
-        .expect("fail to send latency");
-    Ok(())
-}
-#[macros::group]
-#[commands(help, ping, latency, some_long_command)]
-struct Manager;
-
-#[macros::command]
-async fn some_long_command(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .say(&ctx.http, &format!("Arguments: {:?}", args.rest()))
-        .await?;
-
-    Ok(())
-}
 
 fn sound_button(name: &str, emoji: ReactionType) -> CreateButton {
     // To add an emoji to buttons, use .emoji(). The method accepts anything ReactionType or
@@ -118,6 +39,7 @@ fn sound_button(name: &str, emoji: ReactionType) -> CreateButton {
 }
 #[async_trait]
 impl EventHandler for Handler {
+    //Tis is an example of message with choice
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content != "animal" {
             return;
@@ -231,8 +153,10 @@ impl EventHandler for Handler {
         if let Interaction::Command(command) = interaction {
             println!("Received command interaction: {:?}", command.data.name);
 
+            //add slash interaction here
             let content = match command.data.name.as_str() {
                 "cat" => Some(Cat::run(&ctx, &command.data.options(), &command).await),
+                "manager" => Some(Manager::run(&ctx, &command.data.options(), &command, command.guild_id.unwrap()).await),
                 _ => Some(
                     CreateEmbed::new()
                         .title("not implemented :(".to_string())
@@ -248,10 +172,12 @@ impl EventHandler for Handler {
             }
         }
     }
+
     async fn ready(&self, ctx: Context, ready: Ready) {
         let mut commands: Vec<CreateCommand> = Vec::new();
-        //register slash command
+        //register slash command here before the bot is ready to operate
         commands.push(Cat::register());
+        commands.push(Manager::register());
         Command::set_global_commands(&ctx.http, commands)
             .await
             .unwrap();
